@@ -1,0 +1,30 @@
+# Das Wochen-Review (B3) — Vorlage für .forgejo/workflows/wochen-review.yml
+# Bewusst OHNE Modell-Secrets: rein mechanischer Bericht, nur Lese- + Issue-Rechte.
+name: Wochen-Review
+on:
+  schedule:
+    - cron: "0 8 * * 1"   # Montags 08:00 UTC ≈ 09:00/10:00 Europe/Berlin
+  workflow_dispatch: {}
+jobs:
+  bericht:
+    runs-on: docker
+    steps:
+      - name: Wissensbasis holen
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: bun bereitstellen
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+      - name: lokyy-mcp bereitstellen
+        run: |
+          git clone --depth 1 "${{ vars.LOKYY_MCP_REPO }}" /tmp/lokyy-mcp
+          cd /tmp/lokyy-mcp && bun install --production
+      - name: Bericht erzeugen und als Issue anlegen
+        env:
+          REPO_PFAD: ${{ github.workspace }}
+          FORGEJO_URL: ${{ github.server_url }}
+          FORGEJO_REPO: ${{ github.repository }}
+          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun /tmp/lokyy-mcp/aktionen/WochenReview.ts

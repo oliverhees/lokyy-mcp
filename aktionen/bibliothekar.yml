@@ -1,0 +1,39 @@
+# Der nächtliche Bibliothekar (B2) — Vorlage für .forgejo/workflows/bibliothekar.yml
+# Secrets im Repo setzen (Einstellungen → Actions → Secrets):
+#   BASE_URL  z. B. https://openrouter.ai/api/v1
+#   API_KEY   dein OpenRouter-Key
+#   MODELL    z. B. openrouter/auto — Modellwechsel ist Variablentausch
+# Der PR-Token kommt automatisch (GITHUB_TOKEN der Action).
+name: Bibliothekar (Nachtlauf)
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC ≈ 03:00/04:00 Europe/Berlin — Forgejo wertet Cron in UTC
+  workflow_dispatch: {}    # manueller Probelauf über den Actions-Tab
+jobs:
+  nachtlauf:
+    runs-on: docker
+    steps:
+      - name: Wissensbasis holen
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: bun bereitstellen
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+      - name: lokyy-mcp bereitstellen
+        # LOKYY_MCP_REPO als Repo-Variable setzen (Einstellungen → Actions → Variables),
+        # z. B. die Kurs-Quelle oder dein eigener Fork.
+        run: |
+          git clone --depth 1 "${{ vars.LOKYY_MCP_REPO }}" /tmp/lokyy-mcp
+          cd /tmp/lokyy-mcp && bun install --production
+      - name: Nachtlauf
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+          MODELL: ${{ secrets.MODELL }}
+          REPO_PFAD: ${{ github.workspace }}
+          FORGEJO_URL: ${{ github.server_url }}
+          FORGEJO_REPO: ${{ github.repository }}
+          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun /tmp/lokyy-mcp/aktionen/Bibliothekar.ts

@@ -43,7 +43,10 @@ export function saeubern(text: string): string {
   return text
     .replace(/(https?:\/\/)[^/@\s]+@/g, "$1[anmeldung-entfernt]@")
     .replace(/([?&](?:access_token|token|password|private_token)=)[^&\s"']+/gi, "$1[entfernt]")
-    .replace(/(authorization:\s*)\S.*$/gim, "$1[entfernt]");
+    .replace(/(authorization:\s*)\S.*$/gim, "$1[entfernt]")
+    // Nackte Schemata ohne Header-Namen (z. B. von Endpoints zurückgeechot):
+    .replace(/\b(bearer\s+)[A-Za-z0-9._~+/=-]{16,}/gi, "$1[entfernt]")
+    .replace(/\b(token\s+)[A-Za-z0-9._~+/=-]{16,}/gi, "$1[entfernt]");
 }
 
 export class GitSchicht {
