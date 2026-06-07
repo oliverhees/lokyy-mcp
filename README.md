@@ -52,6 +52,19 @@ bun src/index.ts --repo /pfad/zur/kb --http --port 8788 --url https://kb.example
   `resource_metadata`-Zeiger (`/.well-known/oauth-protected-resource`).
 - Im Werkzeug ändert sich nur die Verbindungszeile — das Vokabular bleibt identisch.
 
+## git-Modus (ab v1.1 — der Standard auf dem Server)
+
+```bash
+bun src/index.ts --repo /pfad/zur/kb --git          # committet jede Schreiboperation
+bun src/index.ts --repo /pfad/zur/kb --git --push   # … und überträgt zum Remote
+```
+
+Mit `--git` übernimmt der Server die Provenance selbst: exakter Commit je
+Werkzeug-Operation, `pull --rebase` beim Start (echter Konflikt stoppt mit
+Anleitung; ein nicht erreichbares Remote stoppt NICHT — offline ist kein
+Konflikt). Push-Fehler stehen sichtbar in der Werkzeug-Antwort. Ohne das Flag
+fasst der Server git nie an.
+
 ## Ein Server = eine Wissensbasis
 
 Pro Wissensbasis-Repo läuft genau ein Server-Prozess mit genau einem Zugang.

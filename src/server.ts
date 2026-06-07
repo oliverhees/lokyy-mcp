@@ -8,11 +8,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { Repo } from "./repo.ts";
+import { GitSchicht } from "./gitintegration.ts";
 import { BlobAblage } from "./loeschmodul.ts";
 import { Werkzeuge } from "./werkzeuge.ts";
 import { Ablehnung, STATUS_TRIAS, TYP_VOKABULAR } from "./texte.ts";
 
-export const VERSION = "1.0.0";
+export const VERSION = "1.1.0";
 const ANWEISUNGEN = join(import.meta.dir, "..", "anweisungen");
 
 type ToolErgebnis = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -28,8 +29,8 @@ async function sicher(fn: () => string | Promise<string>): Promise<ToolErgebnis>
   }
 }
 
-export function baueServer(repo: Repo, blobs: BlobAblage): McpServer {
-  const w = new Werkzeuge(repo, blobs);
+export function baueServer(repo: Repo, blobs: BlobAblage, git?: GitSchicht): McpServer {
+  const w = new Werkzeuge(repo, blobs, git);
   const server = new McpServer({ name: "lokyy-mcp", version: VERSION });
 
   server.registerTool(

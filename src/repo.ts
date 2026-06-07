@@ -16,6 +16,8 @@ export type Uhr = () => Date;
 export class Repo {
   readonly wurzel: string;
   private kette: Promise<unknown> = Promise.resolve();
+  /** Von der laufenden Schreiboperation berührte Pfade — für exaktes git-Staging. */
+  private beruehrt = new Set<string>();
 
   constructor(wurzel: string, private uhr: Uhr = () => new Date()) {
     this.wurzel = resolve(wurzel);
@@ -60,6 +62,14 @@ export class Repo {
     const tmp = join(dirname(ziel), `.${basename(ziel)}.${randomBytes(4).toString("hex")}.tmp`);
     writeFileSync(tmp, inhalt, "utf8");
     renameSync(tmp, ziel);
+    this.beruehrt.add(relativ);
+  }
+
+  /** Berührte Pfade der laufenden Operation abholen (und zurücksetzen). */
+  beruehrteAbholen(): string[] {
+    const pfade = [...this.beruehrt];
+    this.beruehrt.clear();
+    return pfade;
   }
 
   lies(relativ: string): string {

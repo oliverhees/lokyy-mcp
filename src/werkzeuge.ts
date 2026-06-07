@@ -7,6 +7,7 @@
  * testbar: gleicher Input, gleicher Repo-Zustand, gleiches Ergebnis.
  */
 import { Repo } from "./repo.ts";
+import { GitSchicht } from "./gitintegration.ts";
 import { BlobAblage, stubKoerper, tombstoneKoerper } from "./loeschmodul.ts";
 import { Ablehnung } from "./texte.ts";
 import {
@@ -41,7 +42,15 @@ export class Werkzeuge {
   constructor(
     private repo: Repo,
     private blobs: BlobAblage,
+    /** v1.1: optionale git-Schicht — ohne sie kein einziger git-Aufruf (ISC-55). */
+    private git?: GitSchicht,
   ) {}
+
+  /** Nach einer gelungenen Schreiboperation: exakt deren Pfade committen. */
+  private committe(nachricht: string): string {
+    const pfade = this.repo.beruehrteAbholen();
+    return this.git ? this.git.commit(nachricht, pfade) : "";
+  }
 
   // ── quelle_aufnehmen ────────────────────────────────────
   quelleAufnehmen(a: QuelleAufnehmenArgs): Promise<string> {
@@ -84,7 +93,8 @@ export class Werkzeuge {
         return (
           `Aufgenommen als Blob+Stub: RAW/${dateiname}\n` +
           `Der Klartext liegt verschlüsselt AUSSERHALB des Repos (${assetId}).\n` +
-          `Im Register vermerkt, verarbeitet=nein.`
+          `Im Register vermerkt, verarbeitet=nein.` +
+          this.committe(`Quelle (Blob+Stub) aufgenommen: ${dateiname}`)
         );
       }
 
@@ -93,7 +103,8 @@ export class Werkzeuge {
       this.repo.atomarSchreiben(`RAW/${dateiname}`, datei);
       this.repo.registerEintragen(dateiname, meta.source_url, a.kurzbeschreibung);
       this.repo.changelog(`Quelle aufgenommen: ${dateiname}`);
-      return `Aufgenommen: RAW/${dateiname} (wörtlich, ${a.inhalt.length} Zeichen). Im Register vermerkt, verarbeitet=nein.`;
+      return `Aufgenommen: RAW/${dateiname} (wörtlich, ${a.inhalt.length} Zeichen). Im Register vermerkt, verarbeitet=nein.` +
+        this.committe(`Quelle aufgenommen: ${dateiname}`);
     });
   }
 
@@ -166,7 +177,8 @@ export class Werkzeuge {
       this.repo.atomarSchreiben(pfad, artikelRendern(f));
       this.repo.indexAktualisieren(f.slug, f.beschreibung);
       this.repo.changelog(`Artikel ${existiert ? "aktualisiert" : "angelegt"}: [[${f.slug}]] (${f.status})`);
-      return `${existiert ? "Aktualisiert" : "Angelegt"}: ${pfad} — Status ${f.status}, ${f.quellen.length} Quelle(n). INDEX-Zeile: ${indexZeile(f.slug, f.beschreibung)}`;
+      return `${existiert ? "Aktualisiert" : "Angelegt"}: ${pfad} — Status ${f.status}, ${f.quellen.length} Quelle(n). INDEX-Zeile: ${indexZeile(f.slug, f.beschreibung)}` +
+        this.committe(`Artikel ${existiert ? "aktualisiert" : "angelegt"}: ${f.slug}`);
     });
   }
 
@@ -192,7 +204,7 @@ export class Werkzeuge {
     return this.repo.schreiben(() => {
       this.repo.registerVerarbeitet(nfc(dateiname));
       this.repo.changelog(`Quelle als verarbeitet markiert: ${dateiname}`);
-      return `Markiert: ${dateiname} → verarbeitet=ja.`;
+      return `Markiert: ${dateiname} → verarbeitet=ja.` + this.committe(`Quelle verarbeitet: ${dateiname}`);
     });
   }
 
@@ -228,7 +240,7 @@ export class Werkzeuge {
       }
       this.repo.atomarSchreiben(`Outputs/${name}`, `# ${args.frage.trim()}\n\n${args.inhalt.trim()}\n`);
       this.repo.changelog(`Report abgelegt: Outputs/${name}`);
-      return `Abgelegt: Outputs/${name}`;
+      return `Abgelegt: Outputs/${name}` + this.committe(`Report abgelegt: ${name}`);
     });
   }
 
@@ -270,7 +282,8 @@ export class Werkzeuge {
       return (
         `Gelöscht auf Verlangen: ${dateiname}\n` +
         `Blob und Schlüsseleintrag sind vernichtet — der Inhalt ist endgültig unlesbar.\n` +
-        `Der Stub ist jetzt ein Tombstone; die git-History enthielt nie Klartext.`
+        `Der Stub ist jetzt ein Tombstone; die git-History enthielt nie Klartext.` +
+        this.committe(`Auf Verlangen gelöscht: ${dateiname}`)
       );
     });
   }

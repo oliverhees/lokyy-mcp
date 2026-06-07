@@ -1,7 +1,7 @@
 {
   "name": "lokyy-mcp",
-  "version": "1.0.0",
-  "description": "Der Bibliothekars-Server des Lokyy OS — semantische Tools mit harter Regeldurchsetzung für Markdown-Wissensbasen",
+  "version": "1.1.0",
+  "description": "Der Bibliothekars-Server des Lokyy OS \u2014 semantische Tools mit harter Regeldurchsetzung f\u00fcr Markdown-Wissensbasen",
   "type": "module",
   "license": "MIT",
   "bin": {

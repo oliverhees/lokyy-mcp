@@ -12,6 +12,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { homedir } from "node:os";
 import { join, resolve, dirname, basename } from "node:path";
 import { Repo } from "./repo.ts";
+import { GitSchicht } from "./gitintegration.ts";
 import { BlobAblage } from "./loeschmodul.ts";
 import { baueServer, VERSION } from "./server.ts";
 import { starteHttp } from "./transport-http.ts";
@@ -36,7 +37,7 @@ if (!repoPfad) {
       `Nutzung:\n` +
       `  lokyy-mcp --repo <wissensbasis>                stdio-Modus (lokal)\n` +
       `  lokyy-mcp --repo <wissensbasis> --http         HTTP-Modus (LOKYY_TOKEN nötig)\n\n` +
-      `Optionen: --port 8788 · --host 127.0.0.1 · --blobs <pfad> · --schluessel <pfad> · --url <öffentliche-url> · --version`,
+      `Optionen: --git (Auto-Commit) · --push (mit --git: nach jedem Commit übertragen) · --port 8788 · --host 127.0.0.1 · --blobs <pfad> · --schluessel <pfad> · --url <öffentliche-url> · --version`,
   );
   process.exit(2);
 }
@@ -47,8 +48,19 @@ const blobs = new BlobAblage(
   arg("blobs") ?? join(dirname(repo.wurzel), ".lokyy-blobs", repoName),
   arg("schluessel") ?? join(homedir(), ".lokyy", "schluessel.json"),
 );
+let git: GitSchicht | undefined;
+if (flagge("git")) {
+  git = new GitSchicht(repo.wurzel, flagge("push"));
+  try {
+    console.error(`lokyy-mcp: ${git.beimStart()}`);
+  } catch (e) {
+    console.error((e as Error).message);
+    process.exit(1);
+  }
+}
+
 if (flagge("http")) {
-  const { url } = await starteHttp(() => baueServer(repo, blobs), {
+  const { url } = await starteHttp(() => baueServer(repo, blobs, git), {
     port: Number(arg("port") ?? 8788),
     host: arg("host"),
     token: process.env.LOKYY_TOKEN ?? "",
@@ -56,6 +68,6 @@ if (flagge("http")) {
   });
   console.error(`lokyy-mcp ${VERSION} bedient ${repoName} auf ${url} (Auth: Bearer)`);
 } else {
-  await baueServer(repo, blobs).connect(new StdioServerTransport());
+  await baueServer(repo, blobs, git).connect(new StdioServerTransport());
   console.error(`lokyy-mcp ${VERSION} bedient ${repoName} über stdio`);
 }

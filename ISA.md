@@ -3,7 +3,7 @@ project: lokyy-mcp
 task: lokyy-mcp v1 komplett bauen (Kern + Lösch-Modul, stdio + HTTP/OAuth)
 effort: E4
 phase: verify
-progress: 49/58
+progress: 53/58
 mode: build
 started: 2026-06-07
 updated: 2026-06-07
@@ -147,11 +147,11 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - [x] ISC-44: Notfallprozedur (History-Rewrite für Altfälle) liegt als dokumentierte Anleitung bei — als Ausnahme markiert
 - [x] ISC-45: Anti: Kein Tool-Pfad schreibt deklarierte Personendaten in Klartext-RAW, auch nicht bei Folgefehlern (Fehlerpfad-Test)
 
-### git-Integration v1.1 (B1c — beim B6-Bau entdeckt, PENDING)
-- [ ] ISC-55: `--git`-Flag: jede Schreiboperation erzeugt einen Commit mit deutscher Ein-Satz-Nachricht; ohne Flag keinerlei git-Aufrufe
-- [ ] ISC-56: Beim Start mit `--git`: `pull --rebase`, bei Konflikt klare Ablehnung statt stillem Weiterarbeiten
-- [ ] ISC-57: Optionaler Auto-Push (`--push`) nach jedem Commit; Fehlschlag wird gemeldet, nie verschluckt
-- [ ] ISC-58: Anti: Der Server schreibt nie git-Credentials und zeigt nie Token-Werte in Tool-Antworten
+### git-Integration v1.1 (B1c — beim B6-Bau entdeckt, GEBAUT 2026-06-07)
+- [x] ISC-55: `--git`-Flag: jede Schreiboperation erzeugt einen Commit mit deutscher Ein-Satz-Nachricht; ohne Flag keinerlei git-Aufrufe
+- [x] ISC-56: Beim Start mit `--git`: `pull --rebase`, bei Konflikt klare Ablehnung statt stillem Weiterarbeiten
+- [x] ISC-57: Optionaler Auto-Push (`--push`) nach jedem Commit; Fehlschlag wird gemeldet, nie verschluckt
+- [x] ISC-58: Anti: Der Server schreibt nie git-Credentials und zeigt nie Token-Werte in Tool-Antworten
 
 ### Qualitätssicherung & Abnahme
 - [x] ISC-46: Deterministische Testsuite deckt jeden Tool-Pfad inkl. Fehlerpfade ab (bun test, ohne LLM)
@@ -196,11 +196,17 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - 2026-06-07 (Bau): HTTP-Auth v1 = Bearer-Pflicht + 401 mit resource_metadata + Protected-Resource-Endpoint (MCP-Spec-Resource-Server-Baseline, Konstantzeit-Vergleich, localhost-Default, Origin-Schutz); der volle Authorization-Server-Anschluss ist B4-Arbeit und additiv. Advisor-verankert.
 - 2026-06-07 (Bau, Forge-Befund): asset-IDs sind bewusst NICHT content-adressiert — zwei PII-Quellen mit identischem Klartext müssen getrennt löschbar sein (content-Hash hätte Löschen der einen die andere mitvernichtet). Abweichung vom Stufe-3-KONZEPT-Wortlaut („asset://{hash}") ist für PII-Assets korrekt; fürs Stufe-3-Binärmodul (Bilder, Dedup erwünscht) neu entscheiden.
 - 2026-06-07 (Bau): Stateless-HTTP mit frischem Server+Transport pro Anfrage — der Zustand lebt auf der Platte, nie in der Session (SDK-Vorgabe für stateless, deterministisch korrekt).
+- 2026-06-07 (B1c-Bau): Exaktes Pfad-Staging statt add -A (Repo verfolgt berührte Pfade je Operation); Identität per -c je Aufruf (user.name+email); GIT_TERMINAL_PROMPT=0, gpgsign=false, --no-verify gegen fremde Configs/Hooks; Commit-/Push-Fehler symmetrisch nicht-fatal mit Meldung in der Tool-Antwort. Forge-Befund gefixt: Konflikt-Erkennung jetzt locale-unabhängig über den Rebase-Zustand (.git/rebase-merge) — die Text-Regex hätte auf deutschem git versagt; saeubern() deckt zusätzlich Authorization-Header und password/private_token-Parameter ab, ssh-URLs bleiben bewusst unberührt.
 - 2026-06-07 (Verify): Cross-Vendor-Audit (Cato/GPT-5.4) NICHT möglich — codex CLI nicht installiert; Forge lief offen deklariert auf Opus statt GPT-5.4. Follow-up: Codex installieren, Cato nachholen — bis dahin gilt der adversariale Opus-Pass als Zweitprüfung derselben Familie.
 - 2026-06-07 (B6-Bau): Lücke entdeckt — ab dem Umzug (Lektion 2.7) schreibt der Server auf der Server-Kopie, v1.0.0 committet aber nicht; KONZEPT verlangt „Dateioperationen + Commits". → v1.1-Kriterien ISC-55..58 angelegt (B1c), VOR Produktion von Lektion 2.7 zu bauen. Bis dahin gilt die Brücke aus den Prompts: der Sparringspartner committet (P13) und pusht (P15), endend mit P16.
 - 2026-06-07: Denk-Tools (destillieren, Artikel entwerfen) sind bewusst KEINE Server-Funktion — der Server liefert Arbeitsaufträge (`destillat_auftrag`, `frage_vorbereiten`) und validiert Ergebnisse; das hält ihn deterministisch testbar und modellagnostisch.
 
 ## Verification
+
+- ISC-55: test — Commit je Schreibwerkzeug mit deutscher Nachricht; git show --name-only = exakt die 3 berührten Pfade; ohne Schicht kein .git; Ablehnung erzeugt keinen Commit
+- ISC-56: test — Konflikt → ABGELEHNT + kein Mid-Rebase-Zustand (auch unter LC_ALL=de_DE); Remote weg → Warnung, Start läuft; kein Repo → Verweis auf Prompt 13
+- ISC-57: test — push=true erreicht das Bare-Remote; Push-Fehler steht in der Antwort, Operation und Commit gelingen trotzdem
+- ISC-58: test — saeubern tilgt URL-Userinfo, Token-/Passwort-Parameter, Authorization-Header; SUPERGEHEIM-Probe erreicht die Antwort nicht; ssh-URLs unverändert
 
 - ISC-1: probe — bun test 38/38 grün, bunx tsc --noEmit sauber, bun run build → dist/index.js 1.12 MB
 - ISC-2/32-Basis: probe — scripts/Probe.ts startet echten stdio-Subprozess: „✓ Verbunden — 11 Werkzeuge"
