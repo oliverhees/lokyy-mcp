@@ -3,7 +3,7 @@ project: lokyy-mcp
 task: lokyy-mcp v1 komplett bauen (Kern + Lösch-Modul, stdio + HTTP/OAuth)
 effort: E4
 phase: verify
-progress: 49/54
+progress: 49/58
 mode: build
 started: 2026-06-07
 updated: 2026-06-07
@@ -147,6 +147,12 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - [x] ISC-44: Notfallprozedur (History-Rewrite für Altfälle) liegt als dokumentierte Anleitung bei — als Ausnahme markiert
 - [x] ISC-45: Anti: Kein Tool-Pfad schreibt deklarierte Personendaten in Klartext-RAW, auch nicht bei Folgefehlern (Fehlerpfad-Test)
 
+### git-Integration v1.1 (B1c — beim B6-Bau entdeckt, PENDING)
+- [ ] ISC-55: `--git`-Flag: jede Schreiboperation erzeugt einen Commit mit deutscher Ein-Satz-Nachricht; ohne Flag keinerlei git-Aufrufe
+- [ ] ISC-56: Beim Start mit `--git`: `pull --rebase`, bei Konflikt klare Ablehnung statt stillem Weiterarbeiten
+- [ ] ISC-57: Optionaler Auto-Push (`--push`) nach jedem Commit; Fehlschlag wird gemeldet, nie verschluckt
+- [ ] ISC-58: Anti: Der Server schreibt nie git-Credentials und zeigt nie Token-Werte in Tool-Antworten
+
 ### Qualitätssicherung & Abnahme
 - [x] ISC-46: Deterministische Testsuite deckt jeden Tool-Pfad inkl. Fehlerpfade ab (bun test, ohne LLM)
 - [x] ISC-47: Property-Test Wörtlichkeit: beliebige Quelltexte (Sonderzeichen, Umbrüche, Bindestriche) überleben den Roundtrip byte-treu
@@ -191,6 +197,7 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - 2026-06-07 (Bau, Forge-Befund): asset-IDs sind bewusst NICHT content-adressiert — zwei PII-Quellen mit identischem Klartext müssen getrennt löschbar sein (content-Hash hätte Löschen der einen die andere mitvernichtet). Abweichung vom Stufe-3-KONZEPT-Wortlaut („asset://{hash}") ist für PII-Assets korrekt; fürs Stufe-3-Binärmodul (Bilder, Dedup erwünscht) neu entscheiden.
 - 2026-06-07 (Bau): Stateless-HTTP mit frischem Server+Transport pro Anfrage — der Zustand lebt auf der Platte, nie in der Session (SDK-Vorgabe für stateless, deterministisch korrekt).
 - 2026-06-07 (Verify): Cross-Vendor-Audit (Cato/GPT-5.4) NICHT möglich — codex CLI nicht installiert; Forge lief offen deklariert auf Opus statt GPT-5.4. Follow-up: Codex installieren, Cato nachholen — bis dahin gilt der adversariale Opus-Pass als Zweitprüfung derselben Familie.
+- 2026-06-07 (B6-Bau): Lücke entdeckt — ab dem Umzug (Lektion 2.7) schreibt der Server auf der Server-Kopie, v1.0.0 committet aber nicht; KONZEPT verlangt „Dateioperationen + Commits". → v1.1-Kriterien ISC-55..58 angelegt (B1c), VOR Produktion von Lektion 2.7 zu bauen. Bis dahin gilt die Brücke aus den Prompts: der Sparringspartner committet (P13) und pusht (P15), endend mit P16.
 - 2026-06-07: Denk-Tools (destillieren, Artikel entwerfen) sind bewusst KEINE Server-Funktion — der Server liefert Arbeitsaufträge (`destillat_auftrag`, `frage_vorbereiten`) und validiert Ergebnisse; das hält ihn deterministisch testbar und modellagnostisch.
 
 ## Verification
