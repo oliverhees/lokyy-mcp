@@ -2,8 +2,8 @@
 project: lokyy-mcp
 task: lokyy-mcp v1 komplett bauen (Kern + Lösch-Modul, stdio + HTTP/OAuth)
 effort: E4
-phase: observe
-progress: 0/54
+phase: verify
+progress: 49/54
 mode: build
 started: 2026-06-07
 updated: 2026-06-07
@@ -91,72 +91,72 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 ## Criteria
 
 ### Fundament & Projektform
-- [ ] ISC-1: `bun install && bun run build` läuft fehlerfrei; `bun test` existiert und ist grün
-- [ ] ISC-2: Server startet per `bun lokyy-mcp --repo <pfad>` im stdio-Modus und beantwortet `initialize`
-- [ ] ISC-3: `--version` gibt eine semantische Version aus; CHANGELOG.md des Servers existiert
-- [ ] ISC-4: Update-Weg dokumentiert: Teilnehmer aktualisiert mit EINEM Befehl, Daten bleiben unberührt
-- [ ] ISC-5: README erklärt Installation, Anschluss (Claude Cowork + AIonUI) und beide Transporte auf Laien-Niveau
+- [x] ISC-1: `bun install && bun run build` läuft fehlerfrei; `bun test` existiert und ist grün
+- [x] ISC-2: Server startet per `bun lokyy-mcp --repo <pfad>` im stdio-Modus und beantwortet `initialize`
+- [x] ISC-3: `--version` gibt eine semantische Version aus; CHANGELOG.md des Servers existiert
+- [x] ISC-4: Update-Weg dokumentiert: Teilnehmer aktualisiert mit EINEM Befehl, Daten bleiben unberührt
+- [x] ISC-5: README erklärt Installation, Anschluss (Claude Cowork + AIonUI) und beide Transporte auf Laien-Niveau
 
 ### Werkzeug-Oberfläche (deterministisch, deutsch)
-- [ ] ISC-6: `quelle_aufnehmen` speichert wörtlich nach RAW/ mit Pflicht-Frontmatter und Datums-Präfix-Dateinamen
-- [ ] ISC-7: `quelle_aufnehmen` registriert in `_INGESTED.md` mit allen fünf Spalten, `verarbeitet=nein`
-- [ ] ISC-8: `quelle_aufnehmen` verlangt den PII-Parameter (enthält_personendaten_dritter: ja/nein) — ohne ihn keine Aufnahme
-- [ ] ISC-9: `wissensbasis_durchsuchen` findet über Wiki und RAW, liefert Treffer mit Quelle (Datei, Zeile)
-- [ ] ISC-10: `artikel_lesen` liefert Artikel inkl. Status-Kopf; nicht existierender Slug → klare Fehlermeldung
-- [ ] ISC-11: `artikel_schreiben` legt Wiki-Artikel an/aktualisiert sie und pflegt INDEX.md im kanonischen Zeilenformat
-- [ ] ISC-12: `frage_vorbereiten` liefert dem Agenten Wiki-Treffer + RAW-Belege + Report-Namensvorgabe (Denkarbeit bleibt beim Agenten)
-- [ ] ISC-13: `report_ablegen` schreibt nach Outputs/ mit JJJJ-MM-TT_kurzform-Namen, verweigert `[[Verweise]]` im Report
-- [ ] ISC-14: `destillat_auftrag` liefert unverarbeitete Quellen + Destillier-Anweisung als Arbeitsauftrag; `quelle_verarbeitet_markieren` setzt das Register auf ja
-- [ ] ISC-15: `gesundheits_check` liefert den deterministischen Strukturreport (= Lint-Befunde) als Tool-Ergebnis
-- [ ] ISC-16: Jede Schreiboperation erzeugt den CHANGELOG-Eintrag der Wissensbasis automatisch
-- [ ] ISC-17: Schreiboperationen sind serialisiert: zwei parallele Aufrufe korrumpieren weder Register noch Index (Test mit Promise.all)
+- [x] ISC-6: `quelle_aufnehmen` speichert wörtlich nach RAW/ mit Pflicht-Frontmatter und Datums-Präfix-Dateinamen
+- [x] ISC-7: `quelle_aufnehmen` registriert in `_INGESTED.md` mit allen fünf Spalten, `verarbeitet=nein`
+- [x] ISC-8: `quelle_aufnehmen` verlangt den PII-Parameter (enthält_personendaten_dritter: ja/nein) — ohne ihn keine Aufnahme
+- [x] ISC-9: `wissensbasis_durchsuchen` findet über Wiki und RAW, liefert Treffer mit Quelle (Datei, Zeile)
+- [x] ISC-10: `artikel_lesen` liefert Artikel inkl. Status-Kopf; nicht existierender Slug → klare Fehlermeldung
+- [x] ISC-11: `artikel_schreiben` legt Wiki-Artikel an/aktualisiert sie und pflegt INDEX.md im kanonischen Zeilenformat
+- [x] ISC-12: `frage_vorbereiten` liefert dem Agenten Wiki-Treffer + RAW-Belege + Report-Namensvorgabe (Denkarbeit bleibt beim Agenten)
+- [x] ISC-13: `report_ablegen` schreibt nach Outputs/ mit JJJJ-MM-TT_kurzform-Namen, verweigert `[[Verweise]]` im Report
+- [x] ISC-14: `destillat_auftrag` liefert unverarbeitete Quellen + Destillier-Anweisung als Arbeitsauftrag; `quelle_verarbeitet_markieren` setzt das Register auf ja
+- [x] ISC-15: `gesundheits_check` liefert den deterministischen Strukturreport (= Lint-Befunde) als Tool-Ergebnis
+- [x] ISC-16: Jede Schreiboperation erzeugt den CHANGELOG-Eintrag der Wissensbasis automatisch
+- [x] ISC-17: Schreiboperationen sind serialisiert: zwei parallele Aufrufe korrumpieren weder Register noch Index (Test mit Promise.all)
 
 ### Regeldurchsetzung (der harte Schreibpfad)
-- [ ] ISC-18: Artikel ohne gültige Status-Trias-Kopfzeile wird abgelehnt
-- [ ] ISC-19: Artikel mit kaputtem `[[Verweis]]` (kein Ziel-Slug) wird abgelehnt
-- [ ] ISC-20: `[[Verweis]]` auf eine RAW-Datei wird abgelehnt (Quellen sind Klartext)
-- [ ] ISC-21: Quellen-Zeile, die eine nicht existierende RAW-Datei nennt, wird abgelehnt
-- [ ] ISC-22: RAW-Frontmatter mit fehlendem Pflichtfeld oder type außerhalb des Vokabulars wird abgelehnt
-- [ ] ISC-23: Datumsangaben außerhalb JJJJ-MM-TT in Frontmatter/Registern werden abgelehnt
-- [ ] ISC-24: Slug-Doktrin erzwungen: Dateiname = Titel mit Bindestrichen, Verweis-Text zeichengleich
-- [ ] ISC-25: Jede Ablehnung nennt auf Deutsch: verletzte Regel, Grund der Regel, konkreter Korrekturvorschlag
-- [ ] ISC-26: Die Validierungslogik ist ein eigenes Modul, das auch LintWorkspace v2 (kb-lint) nutzen kann — eine Quelle, zwei Verbraucher
-- [ ] ISC-27: Anti: Der Server formuliert NIE Quellentext um — RAW-Schreibpfad ist byte-treu (Roundtrip-Test)
+- [x] ISC-18: Artikel ohne gültige Status-Trias-Kopfzeile wird abgelehnt
+- [x] ISC-19: Artikel mit kaputtem `[[Verweis]]` (kein Ziel-Slug) wird abgelehnt
+- [x] ISC-20: `[[Verweis]]` auf eine RAW-Datei wird abgelehnt (Quellen sind Klartext)
+- [x] ISC-21: Quellen-Zeile, die eine nicht existierende RAW-Datei nennt, wird abgelehnt
+- [x] ISC-22: RAW-Frontmatter mit fehlendem Pflichtfeld oder type außerhalb des Vokabulars wird abgelehnt
+- [x] ISC-23: Datumsangaben außerhalb JJJJ-MM-TT in Frontmatter/Registern werden abgelehnt
+- [x] ISC-24: Slug-Doktrin erzwungen: Dateiname = Titel mit Bindestrichen, Verweis-Text zeichengleich
+- [x] ISC-25: Jede Ablehnung nennt auf Deutsch: verletzte Regel, Grund der Regel, konkreter Korrekturvorschlag
+- [x] ISC-26: Die Validierungslogik ist ein eigenes Modul, das auch LintWorkspace v2 (kb-lint) nutzen kann — eine Quelle, zwei Verbraucher
+- [x] ISC-27: Anti: Der Server formuliert NIE Quellentext um — RAW-Schreibpfad ist byte-treu (Roundtrip-Test)
 
 ### Anweisungs-Kaskade als Resource
-- [ ] ISC-28: MCP-Resource `lokyy://anweisung/basis` liefert die universelle Bibliothekars-Anweisung
-- [ ] ISC-29: MCP-Resource `lokyy://anweisung/overlay` liefert das KB-spezifische Overlay (aus dem Repo-AGENTS.md gespeist)
-- [ ] ISC-30: Der Bootstrap-Zeiger (3-4 Sätze für Workspace-Datei bzw. Connector-Instruktion) liegt als Vorlage bei
-- [ ] ISC-31: Kaskaden-Inhalte kommen aus EINER Quelle im Server-Paket — kein doppelt gepflegter Regeltext
+- [x] ISC-28: MCP-Resource `lokyy://anweisung/basis` liefert die universelle Bibliothekars-Anweisung
+- [x] ISC-29: MCP-Resource `lokyy://anweisung/overlay` liefert das KB-spezifische Overlay (aus dem Repo-AGENTS.md gespeist)
+- [x] ISC-30: Der Bootstrap-Zeiger (3-4 Sätze für Workspace-Datei bzw. Connector-Instruktion) liegt als Vorlage bei
+- [x] ISC-31: Kaskaden-Inhalte kommen aus EINER Quelle im Server-Paket — kein doppelt gepflegter Regeltext
 
 ### Transporte
-- [ ] ISC-32: stdio-Transport: Anschluss aus Claude Cowork per Konfigurationsdatei funktioniert (dokumentierter Cold-Start-Beleg)
-- [ ] ISC-33: stdio-Transport: Anschluss aus AIonUI funktioniert (Invarianz-Voraussetzung für Lektion 2.5)
-- [ ] ISC-34: HTTP-Transport (Streamable HTTP) startet per `--http --port N` und besteht denselben Tool-Testlauf wie stdio
-- [ ] ISC-35: OAuth gemäß MCP-Spec auf dem HTTP-Transport: ohne gültiges Token keine Tool-Calls (401-Probe)
-- [ ] ISC-36: Identitätstest: dieselbe Tool-Sequenz über stdio und HTTP erzeugt byte-identische Repo-Zustände
-- [ ] ISC-37: Anti: Der HTTP-Transport ist ohne Auth NIE erreichbar — auch nicht in einer „Dev-Abkürzung"
+- [DEFERRED-VERIFY] ISC-32: stdio-Transport: Anschluss aus Claude Cowork per Konfigurationsdatei funktioniert (dokumentierter Cold-Start-Beleg) → Folge: Modul-2-Testschleife Runde 1 (echter Claude-Cowork-Anschluss); Protokoll-Probe via scripts/Probe.ts bestanden
+- [DEFERRED-VERIFY] ISC-33: stdio-Transport: Anschluss aus AIonUI funktioniert (Invarianz-Voraussetzung für Lektion 2.5) → Folge: Modul-2-Testschleife Runde 1 (AIonUI-Anschluss)
+- [x] ISC-34: HTTP-Transport (Streamable HTTP) startet per `--http --port N` und besteht denselben Tool-Testlauf wie stdio
+- [x] ISC-35: OAuth gemäß MCP-Spec auf dem HTTP-Transport: ohne gültiges Token keine Tool-Calls (401-Probe)
+- [x] ISC-36: Identitätstest: dieselbe Tool-Sequenz über stdio und HTTP erzeugt byte-identische Repo-Zustände
+- [x] ISC-37: Anti: Der HTTP-Transport ist ohne Auth NIE erreichbar — auch nicht in einer „Dev-Abkürzung"
 
 ### Lösch-Modul (G3 — Blob+Stub+Tombstone)
-- [ ] ISC-38: `quelle_aufnehmen` mit Personendaten-Flag legt den Inhalt als verschlüsselten Blob AUSSERHALB des Repos ab (AES-256-GCM, Schlüsseldatei getrennt)
-- [ ] ISC-39: Im Repo liegt nur der Stub: Frontmatter + stabile asset-ID + inhaltliche Kurzbeschreibung ohne Personenbezug
-- [ ] ISC-40: `quelle_lesen` auf einen Stub entschlüsselt zur Laufzeit; ohne Schlüssel → klare Fehlermeldung, kein Absturz
-- [ ] ISC-41: `loeschen_auf_verlangen` vernichtet Blob UND Schlüsseleintrag und wandelt den Stub in einen Tombstone („gelöscht am …, auf Verlangen")
-- [ ] ISC-42: Nach Löschung: Suche findet den Inhalt nicht mehr; git-History des Repos enthält nachweislich nie Klartext (Probe über git log -p)
-- [ ] ISC-43: Tombstones überleben Destillat-Aufträge und Gesundheits-Check ohne Falschbefund
-- [ ] ISC-44: Notfallprozedur (History-Rewrite für Altfälle) liegt als dokumentierte Anleitung bei — als Ausnahme markiert
-- [ ] ISC-45: Anti: Kein Tool-Pfad schreibt deklarierte Personendaten in Klartext-RAW, auch nicht bei Folgefehlern (Fehlerpfad-Test)
+- [x] ISC-38: `quelle_aufnehmen` mit Personendaten-Flag legt den Inhalt als verschlüsselten Blob AUSSERHALB des Repos ab (AES-256-GCM, Schlüsseldatei getrennt)
+- [x] ISC-39: Im Repo liegt nur der Stub: Frontmatter + stabile asset-ID + inhaltliche Kurzbeschreibung ohne Personenbezug
+- [x] ISC-40: `quelle_lesen` auf einen Stub entschlüsselt zur Laufzeit; ohne Schlüssel → klare Fehlermeldung, kein Absturz
+- [x] ISC-41: `loeschen_auf_verlangen` vernichtet Blob UND Schlüsseleintrag und wandelt den Stub in einen Tombstone („gelöscht am …, auf Verlangen")
+- [x] ISC-42: Nach Löschung: Suche findet den Inhalt nicht mehr; git-History des Repos enthält nachweislich nie Klartext (Probe über git log -p)
+- [x] ISC-43: Tombstones überleben Destillat-Aufträge und Gesundheits-Check ohne Falschbefund
+- [x] ISC-44: Notfallprozedur (History-Rewrite für Altfälle) liegt als dokumentierte Anleitung bei — als Ausnahme markiert
+- [x] ISC-45: Anti: Kein Tool-Pfad schreibt deklarierte Personendaten in Klartext-RAW, auch nicht bei Folgefehlern (Fehlerpfad-Test)
 
 ### Qualitätssicherung & Abnahme
-- [ ] ISC-46: Deterministische Testsuite deckt jeden Tool-Pfad inkl. Fehlerpfade ab (bun test, ohne LLM)
-- [ ] ISC-47: Property-Test Wörtlichkeit: beliebige Quelltexte (Sonderzeichen, Umbrüche, Bindestriche) überleben den Roundtrip byte-treu
-- [ ] ISC-48: Ein per Server befüllter Beispiel-Workspace besteht LintWorkspace mit 0 Fehlern / 0 Warnungen
-- [ ] ISC-49: Cold-Start als simulierter Teilnehmer (Petra-Harness, frische Session): Anschluss + Quelle + Ablehnung + Suche ohne Anleitung von außen
-- [ ] ISC-50: Die sechs Modul-2-Prompts (14–19) funktionieren wortlautgleich gegen den Server (Prompt-Bibliothek B6-Vorgriff geprüft)
-- [ ] ISC-51: Performance-Probe: 200 RAW-Dateien, Suche < 1 s, Aufnahme < 2 s (CX22-Klasse)
-- [ ] ISC-52: Anti: keine Claude-spezifischen Annahmen (Grep auf claude/anthropic im Tool-Verhalten = nur Doku-Erwähnungen)
-- [ ] ISC-53: Anti: Server schreibt NIE außerhalb von Repo, Blob-Ablage und eigener Konfiguration (Pfad-Traversal-Test)
-- [ ] ISC-54: Antecedent: Die Ablehnungs-Erlebnisse aus Lektion 2.4 (kaputte Quelle live) sind mit dem ausgelieferten Server reproduzierbar — Demo-Drehbuch liegt bei
+- [x] ISC-46: Deterministische Testsuite deckt jeden Tool-Pfad inkl. Fehlerpfade ab (bun test, ohne LLM)
+- [x] ISC-47: Property-Test Wörtlichkeit: beliebige Quelltexte (Sonderzeichen, Umbrüche, Bindestriche) überleben den Roundtrip byte-treu
+- [x] ISC-48: Ein per Server befüllter Beispiel-Workspace besteht LintWorkspace mit 0 Fehlern / 0 Warnungen
+- [DEFERRED-VERIFY] ISC-49: Cold-Start als simulierter Teilnehmer (Petra-Harness, frische Session): Anschluss + Quelle + Ablehnung + Suche ohne Anleitung von außen → Folge: Modul-2-Testschleife Runde 1 (Petra-Harness gegen echten Server)
+- [DEFERRED-VERIFY] ISC-50: Die sechs Modul-2-Prompts (14–19) funktionieren wortlautgleich gegen den Server (Prompt-Bibliothek B6-Vorgriff geprüft) → Folge: Baustein B6 — Prompts 13-19 existieren noch nicht
+- [x] ISC-51: Performance-Probe: 200 RAW-Dateien, Suche < 1 s, Aufnahme < 2 s (CX22-Klasse)
+- [x] ISC-52: Anti: keine Claude-spezifischen Annahmen (Grep auf claude/anthropic im Tool-Verhalten = nur Doku-Erwähnungen)
+- [x] ISC-53: Anti: Server schreibt NIE außerhalb von Repo, Blob-Ablage und eigener Konfiguration (Pfad-Traversal-Test)
+- [x] ISC-54: Antecedent: Die Ablehnungs-Erlebnisse aus Lektion 2.4 (kaputte Quelle live) sind mit dem ausgelieferten Server reproduzierbar — Demo-Drehbuch liegt bei
 
 ## Test Strategy
 
@@ -187,4 +187,24 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 
 - 2026-06-07: Oliver entscheidet: v1 wird KOMPLETT gebaut (Kern + Lösch-Modul in einem Zug) statt in zwei Wellen — Begründung: ein Release, ein Update-Weg, die Lösch-Mechanik prägt die Tool-Signaturen (PII-Parameter in quelle_aufnehmen) und soll nicht nachträglich einbrechen.
 - 2026-06-07: Teilnehmer bauen den Server NICHT selbst (Sicherheits-/Support-/Update-Argumente); Lektion 2.3 bekommt stattdessen die „Spielzeug-Theke" (Mini-MCP als Bau-Erlebnis), lokyy-mcp wird quelloffen mitgeliefert.
+- 2026-06-07 (Bau): HTTP-Auth v1 = Bearer-Pflicht + 401 mit resource_metadata + Protected-Resource-Endpoint (MCP-Spec-Resource-Server-Baseline, Konstantzeit-Vergleich, localhost-Default, Origin-Schutz); der volle Authorization-Server-Anschluss ist B4-Arbeit und additiv. Advisor-verankert.
+- 2026-06-07 (Bau, Forge-Befund): asset-IDs sind bewusst NICHT content-adressiert — zwei PII-Quellen mit identischem Klartext müssen getrennt löschbar sein (content-Hash hätte Löschen der einen die andere mitvernichtet). Abweichung vom Stufe-3-KONZEPT-Wortlaut („asset://{hash}") ist für PII-Assets korrekt; fürs Stufe-3-Binärmodul (Bilder, Dedup erwünscht) neu entscheiden.
+- 2026-06-07 (Bau): Stateless-HTTP mit frischem Server+Transport pro Anfrage — der Zustand lebt auf der Platte, nie in der Session (SDK-Vorgabe für stateless, deterministisch korrekt).
+- 2026-06-07 (Verify): Cross-Vendor-Audit (Cato/GPT-5.4) NICHT möglich — codex CLI nicht installiert; Forge lief offen deklariert auf Opus statt GPT-5.4. Follow-up: Codex installieren, Cato nachholen — bis dahin gilt der adversariale Opus-Pass als Zweitprüfung derselben Familie.
 - 2026-06-07: Denk-Tools (destillieren, Artikel entwerfen) sind bewusst KEINE Server-Funktion — der Server liefert Arbeitsaufträge (`destillat_auftrag`, `frage_vorbereiten`) und validiert Ergebnisse; das hält ihn deterministisch testbar und modellagnostisch.
+
+## Verification
+
+- ISC-1: probe — bun test 38/38 grün, bunx tsc --noEmit sauber, bun run build → dist/index.js 1.12 MB
+- ISC-2/32-Basis: probe — scripts/Probe.ts startet echten stdio-Subprozess: „✓ Verbunden — 11 Werkzeuge"
+- ISC-3: probe — `bun src/index.ts --version` → „lokyy-mcp 1.0.0"; CHANGELOG.md vorhanden
+- ISC-6..27: test — Doktrin-Fixtures je Regel (tests/werkzeuge.test.ts), Wörtlichkeits-Property mit 4 Sonderzeichen-Proben byte-treu
+- ISC-17: test — 8 parallele Aufnahmen, Register konsistent (Promise.all)
+- ISC-28..31: test — Resources basis/overlay/bootstrap über MCP-Client gelesen
+- ISC-34..37: test — 401 ohne Token (mit resource_metadata-Header), 403 Fremd-Origin, Start-Verweigerung ohne Token, diff -r beider Transport-Läufe → IDENTISCH
+- ISC-38..45: test — Klartext-Grep über Repo = leer, git log -p ohne Klartext, Tombstone-Pfade, getrennte Löschbarkeit identischer Klartexte (Forge-Regression)
+- ISC-46..48: test — 38 Tests ohne LLM; per Server befüllter Workspace: workspacePruefen 0/0
+- ISC-51: test — 200 Quellen: Suche und Aufnahme unter Budget
+- ISC-52: probe — Grep claude/anthropic: nur Doku-Nennungen (CLAUDE.md-Konvention, Connector-Anleitung)
+- ISC-53: test — Traversal-Proben über drei Tool-Pfade abgelehnt
+- ISC-54: inspection — docs/DEMO-Drehbuch-Ablehnung.md; alle drei Demo-Ablehnungen sind Suite-Fixtures
