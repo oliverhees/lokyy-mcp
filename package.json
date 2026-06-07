@@ -1,0 +1,23 @@
+{
+  "name": "lokyy-mcp",
+  "version": "1.0.0",
+  "description": "Der Bibliothekars-Server des Lokyy OS — semantische Tools mit harter Regeldurchsetzung für Markdown-Wissensbasen",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "lokyy-mcp": "src/index.ts"
+  },
+  "scripts": {
+    "start": "bun src/index.ts",
+    "test": "bun test",
+    "build": "bun build src/index.ts --target bun --outdir dist && tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.14",
+    "typescript": "^6.0.3"
+  }
+}
