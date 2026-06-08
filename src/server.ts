@@ -13,7 +13,7 @@ import { BlobAblage } from "./loeschmodul.ts";
 import { Werkzeuge } from "./werkzeuge.ts";
 import { Ablehnung, STATUS_TRIAS, TYP_VOKABULAR } from "./texte.ts";
 
-export const VERSION = "1.6.0";
+export const VERSION = "1.6.1";
 const ANWEISUNGEN = join(import.meta.dir, "..", "anweisungen");
 
 type ToolErgebnis = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -138,11 +138,12 @@ export function baueServer(repo: Repo, blobs: BlobAblage, git?: GitSchicht): Mcp
     {
       title: "Neue Notiz",
       description:
-        'Legt eine strukturierte persönliche Notiz in RAW/_notizen/ an ("neue Notiz") — mit festem ' +
-        "Frontmatter (title, date_added, type, tags). Durchsuchbar, aber bewusst nie destilliert und " +
-        "nicht geprüft (dein persönliches Notiz-Fach). Für eigenes, fertiges Wissen mit Quellen nutze artikel_schreiben.",
+        'Legt eine persönliche Notiz als Wiki-Eintrag an ("neue Notiz", Status: These — weil es deine ' +
+        "eigene, noch unbelegte Notiz ist). Du gibst nur Titel + Inhalt (+ Tags), der Server füllt das " +
+        "Format. So ist die Notiz durchsucht, vom Veredler vernetzt und im INDEX — geht nicht unter, wird " +
+        "aber nie destilliert. Ergänzt du später eine Quelle, reift sie zu „im Aufbau\"/„gesichert\".",
       inputSchema: {
-        titel: z.string().describe("Kurzer Titel — wird Dateiname und macht die Notiz auffindbar"),
+        titel: z.string().describe("Kurzer Titel — wird der Slug und macht die Notiz auffindbar"),
         inhalt: z.string().describe("Der Inhalt der Notiz"),
         tags: z.array(z.string()).optional().describe("Schlagwörter (einzelne Wörter, keine Leer-/Sonderzeichen)"),
       },

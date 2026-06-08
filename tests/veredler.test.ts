@@ -76,20 +76,31 @@ describe("artikel_vernetzen (Werkzeug)", () => {
 });
 
 describe("notiz_anlegen", () => {
-  test("legt strukturierte Notiz in RAW/_notizen/ an: durchsuchbar, nicht destilliert, Check sauber", async () => {
+  test("legt Wiki-Notiz an (Status These): durchsucht, im INDEX, getaggt, nicht destilliert, Check sauber", async () => {
     const b = frischeBasis();
     await b.w.notizAnlegen({ titel: "Gedanke zum Posteingang", inhalt: "Erst sammeln, dann ordnen.", tags: ["produktiv", "posteingang"] });
-    const treffer = b.repo.rawDateien().filter((f) => f.startsWith("_notizen/"));
-    expect(treffer.length).toBe(1);
-    const inhalt = readFileSync(join(b.kb, "RAW", treffer[0]), "utf8");
-    expect(inhalt).toContain("title: Gedanke zum Posteingang");
-    expect(inhalt).toContain("type: note");
-    expect(inhalt).toContain("tags: produktiv, posteingang");
-    // durchsuchbar, aber NICHT im Destillat-Auftrag (Hände-weg-Zone)
-    expect(b.w.durchsuchen("Posteingang")).toContain("RAW/_notizen/");
-    expect(b.repo.unverarbeitete().map((q) => q.dateiname)).not.toContain(treffer[0]);
-    // freie Notiz lässt den Struktur-Check sauber
+    const slug = "gedanke-zum-posteingang";
+    expect(b.repo.existiert(`Wiki/${slug}.md`)).toBe(true);
+    const inhalt = readFileSync(join(b.kb, "Wiki", `${slug}.md`), "utf8");
+    expect(inhalt).toContain("Status: These");
+    expect(inhalt).toContain("Tags: produktiv, posteingang");
+    expect(inhalt).toContain("Erst sammeln, dann ordnen.");
+    // im INDEX (geht nicht unter) und durchsuchbar
+    expect(readFileSync(join(b.kb, "Wiki", "INDEX.md"), "utf8")).toContain(`[[${slug}]]`);
+    expect(b.w.durchsuchen("Posteingang")).toContain(`Wiki/${slug}.md`);
+    // nicht destilliert: keine RAW-Quelle entstanden, nichts im Auftrag
+    expect(b.repo.unverarbeitete().length).toBe(0);
     expect(b.w.gesundheitsCheck()).toContain("0 Fehler");
+  });
+
+  test("vernetzbar: der Veredler kann die Notiz wie jeden Artikel verlinken", async () => {
+    const b = frischeBasis();
+    await b.w.notizAnlegen({ titel: "Notiz Eins", inhalt: "Erster Gedanke." });
+    await b.w.notizAnlegen({ titel: "Notiz Zwei", inhalt: "Zweiter Gedanke." });
+    await b.w.artikelVernetzen("notiz-eins", ["notiz-zwei"], ["thema"]);
+    const datei = readFileSync(join(b.kb, "Wiki", "notiz-eins.md"), "utf8");
+    expect(datei).toContain("## Verwandt\n\n- [[notiz-zwei]]");
+    expect(datei).toContain("Erster Gedanke."); // Inhalt unangetastet
   });
 
   test("leere Notiz und ungültiges Tag werden abgelehnt", async () => {

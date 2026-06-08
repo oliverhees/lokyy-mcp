@@ -1,5 +1,14 @@
 # Changelog — lokyy-mcp
 
+## 1.6.1 (2026-06-08) — notiz_anlegen schreibt ins Wiki
+
+- **Korrektur zu 1.6.0:** `notiz_anlegen` legt die Notiz jetzt als **Wiki-Eintrag**
+  an (Status: These), nicht mehr in `RAW/_notizen/`. Grund: Notizen sollen
+  durchsucht UND vom Veredler vernetzt werden — beides passiert in der Wiki-Ebene;
+  `_notizen` ist die „Hände weg"-Zone (nicht vernetzt). Du gibst weiter nur Titel
+  + Inhalt (+ Tags); ergänzt du später eine Quelle, reift die Notiz zu „im
+  Aufbau"/„gesichert". `_notizen` bleibt für rohes Wegwerf-Material.
+
 ## 1.6.0 (2026-06-08) — notiz_anlegen ("neue Notiz")
 
 - **`notiz_anlegen`** — legt eine strukturierte persönliche Notiz in

@@ -223,6 +223,8 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 
 - 2026-06-08 (notiz_anlegen, v1.6.0): Auf Olivers Wunsch „Befehl für neue Notiz + Frontmatter-Schema, damit Notizen nicht untergehen". Entscheid: **Notizen in `RAW/_notizen/`** (Olivers Wahl „dann hab ich beides" — freie + strukturierte Notizen in einem persönlichen Fach), NICHT als Wiki-These-Artikel. `notiz_anlegen` schreibt festes Frontmatter (title/date_added/type:note/tags) in die Hände-weg-Zone: durchsuchbar, aber nie destilliert, nicht geprüft, NICHT im Wiki-INDEX und NICHT vernetzt (bewusster Trade-off — Findbarkeit via Schema + Suche + Changelog/Wochen-Review). 14 MCP-Tools. Doku-Folge: Note-Schema in lokyy-kb-starter `KONVENTIONEN.md` + Befehl in `AGENTS.md`.
 
+- 2026-06-08 (Korrektur, v1.6.1): `notiz_anlegen` schreibt jetzt eine **Wiki-Notiz** (Status These), nicht `RAW/_notizen/`. Olivers Erinnerung „Notizen sollen in der Suche auftauchen UND veredelt werden können" deckte den Widerspruch auf: `_notizen` (Hände-weg) ist per Definition NICHT veredelbar — Veredeln passiert in der Wiki-Ebene. „Untouched" und „veredelt" sind Gegenteile. Also Notiz = Wiki-Bürger (durchsucht + vom Veredler vernetzt + im INDEX + nie destilliert; reift mit, sobald eine Quelle ergänzt wird). `notizAnlegen` ist jetzt ein dünner async-Aufsatz auf `artikelSchreiben` (kurzfassung = erste Inhaltszeile). `_notizen` bleibt für rohes Wegwerf-Material. LEHRE: bei „beides"-Wünschen früher auf physikalische Gegensätze prüfen.
+
 ## Verification
 
 - ISC-55: test — Commit je Schreibwerkzeug mit deutscher Nachricht; git show --name-only = exakt die 3 berührten Pfade; ohne Schicht kein .git; Ablehnung erzeugt keinen Commit
@@ -264,4 +266,4 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - ISC-83: test — 13 MCP-Tools gelistet (inkl. artikel_vernetzen, session_speichern)
 - ISC-84: test — Veredler-Lauf (Mock-LLM): vernetzt zwei Artikel, Auto-Merge, Prosa unangetastet
 - ISC-85: test — kb-lint (leseWorkspace + workspacePruefen): frische Basis 0 Fehler; RAW ohne Frontmatter + kaputter Wiki-Verweis werden gemeldet; freie Notiz in `_notizen/` bleibt ungeprüft. Probe: `KbLint.ts` gegen den Starter = 0/0
-- ISC-86: test — `notiz_anlegen` schreibt strukturierte Notiz nach RAW/_notizen/ (title/type/tags im Frontmatter), durchsuchbar, NICHT im Destillat-Auftrag, gesundheits_check bleibt 0/0; leere Notiz + ungültiges Tag werden abgelehnt
+- ISC-86: test — `notiz_anlegen` legt Wiki-Notiz (Status These) an: durchsucht, im INDEX, getaggt, NICHT destilliert, gesundheits_check 0/0; vom Veredler (`artikel_vernetzen`) vernetzbar, Inhalt unangetastet; leere Notiz + ungültiges Tag abgelehnt
