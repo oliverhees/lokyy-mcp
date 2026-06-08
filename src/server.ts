@@ -13,7 +13,7 @@ import { BlobAblage } from "./loeschmodul.ts";
 import { Werkzeuge } from "./werkzeuge.ts";
 import { Ablehnung, STATUS_TRIAS, TYP_VOKABULAR } from "./texte.ts";
 
-export const VERSION = "1.1.0";
+export const VERSION = "1.2.0";
 const ANWEISUNGEN = join(import.meta.dir, "..", "anweisungen");
 
 type ToolErgebnis = { content: { type: "text"; text: string }[]; isError?: boolean };

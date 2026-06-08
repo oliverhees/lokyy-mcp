@@ -43,4 +43,8 @@ jobs:
           FORGEJO_URL: ${{ github.server_url }}
           FORGEJO_REPO: ${{ github.repository }}
           FORGEJO_TOKEN: ${{ secrets.FOJO_TOKEN }}
+          # "auto" (Default): sauberer Lauf wird selbst zusammengeführt; nur bei
+          # einer Entscheidungsfrage bleibt der PR offen (der Tagesimpuls meldet
+          # ihn morgens). "manuell" = nie auto-mergen (jeder PR wartet auf dich).
+          MERGE_MODUS: auto
         run: bun /tmp/lokyy-mcp/aktionen/Bibliothekar.ts

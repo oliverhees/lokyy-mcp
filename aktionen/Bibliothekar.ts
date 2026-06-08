@@ -28,6 +28,9 @@ export interface LaufKonfiguration {
   maxSchritte: number;
   branch?: string; // ohne git-Repo: undefined
   forgejo?: { url: string; repo: string; token: string };
+  // "auto" (Default): PR ohne offene Frage wird selbst zusammengeführt (Hybrid —
+  // bei einer Entscheidungsfrage bleibt er offen). "manuell": nie auto-mergen.
+  mergeModus?: "auto" | "manuell";
   log?: (zeile: string) => void;
 }
 
@@ -39,10 +42,20 @@ Dein Auftrag heute Nacht:
    Konzept; bei kurzen Quellen ist EIN Artikel das richtige Ergebnis.
 2. Prüfe danach die Struktur (gesundheits_check) und repariere nur, was die
    Betriebsanweisung dir erlaubt.
-3. Schließe mit einer Bilanz in 3-6 Zeilen ab (was destilliert, was geprüft,
-   was dem Besitzer zur Entscheidung bleibt) — sie wird die PR-Beschreibung.
-Gibt es nichts zu destillieren UND der Check ist sauber: Antworte exakt mit
-NICHTS_ZU_TUN und sonst nichts. Erfinde NIE Inhalte ohne Quellengrundlage.`;
+3. Schließe mit einer Bilanz in 3-6 Zeilen ab (was destilliert, was geprüft) —
+   sie wird die Beschreibung des Pull Requests.
+Erfinde NIE Inhalte ohne Quellengrundlage.
+
+Deine Arbeit wird normalerweise AUTOMATISCH übernommen. Bremse das nur, wenn es
+eine echte Entscheidung gibt, die nur der Besitzer treffen kann (welche von zwei
+widersprüchlichen Quellen gilt, ob eine heikle Quelle überhaupt destilliert
+werden soll o. Ä.) — dann formuliere die Frage klar in der Bilanz.
+
+Beende deine Bilanz mit GENAU EINER dieser Schlusszeilen, nichts dahinter:
+  STATUS: ALLES_KLAR            — sauber erledigt, nichts wartet auf den Besitzer
+  STATUS: BRAUCHE_ENTSCHEIDUNG  — oben steht mindestens eine offene Frage
+Gibt es überhaupt nichts zu destillieren UND der Check ist sauber: Antworte
+stattdessen exakt mit NICHTS_ZU_TUN und sonst nichts.`;
 
 function git(repo: string, args: string[]): string {
   return execFileSync("git", ["-C", repo, ...args], {
@@ -54,10 +67,13 @@ function git(repo: string, args: string[]): string {
 type Nachricht = Record<string, unknown>;
 
 export async function bibliothekarLauf(cfg: LaufKonfiguration): Promise<{
-  status: "nichts-zu-tun" | "gearbeitet" | "pr-erstellt";
+  status: "nichts-zu-tun" | "gearbeitet" | "pr-erstellt" | "pr-gemergt";
   bilanz: string;
   commits: number;
   prUrl?: string;
+  prNummer?: number;
+  gemergt?: boolean;
+  offeneFragen?: boolean;
 }> {
   const log = cfg.log ?? ((z) => console.error(z));
   if (!cfg.apiKey || cfg.apiKey.length < 16) {
@@ -142,6 +158,11 @@ export async function bibliothekarLauf(cfg: LaufKonfiguration): Promise<{
     }
     if (bilanz === "") bilanz = "Schritt-Limit erreicht — Lauf beendet, Zwischenstand committet.";
 
+    // Deterministisches Signal aus der Schlusszeile: braucht der Besitzer zu
+    // entscheiden? (Steuert Hybrid-Auto-Merge und den Tagesimpuls.)
+    const offeneFragen = /STATUS:\s*BRAUCHE_ENTSCHEIDUNG/i.test(bilanz);
+    const bilanzAnzeige = bilanz.replace(/\n?\s*STATUS:\s*(ALLES_KLAR|BRAUCHE_ENTSCHEIDUNG)\s*$/i, "").trim();
+
     const checkNachher = await werkzeug("gesundheits_check");
     const commits = istGit
       ? Number(git(cfg.repoPfad, ["rev-list", "--count", `${startCommit}..HEAD`]).trim())
@@ -149,30 +170,53 @@ export async function bibliothekarLauf(cfg: LaufKonfiguration): Promise<{
 
     if (bilanz.includes("NICHTS_ZU_TUN") && commits === 0) {
       log("Nichts zu tun — gutes Ergebnis, kein PR.");
-      return { status: "nichts-zu-tun", bilanz: "Nichts zu tun — alle Quellen verarbeitet, Struktur sauber.", commits: 0 };
+      return { status: "nichts-zu-tun", bilanz: "Nichts zu tun — alle Quellen verarbeitet, Struktur sauber.", commits: 0, gemergt: false, offeneFragen: false };
     }
 
     const report =
-      `## Nachtlauf des Bibliothekars\n\n${bilanz}\n\n` +
+      `## Nachtlauf des Bibliothekars\n\n${bilanzAnzeige}\n\n` +
+      (offeneFragen ? `> ⏸️ Dieser Lauf wartet auf deine Entscheidung — bitte oben prüfen und dann zusammenführen.\n\n` : "") +
       `### Struktur-Check nach dem Lauf\n\n\`\`\`\n${checkNachher}\n\`\`\`\n\n` +
       `*${commits} Commit(s) über die lokyy-Werkzeuge — jeder einzeln nachvollziehbar.*`;
 
     if (cfg.forgejo && istGit && commits > 0 && cfg.branch) {
       git(cfg.repoPfad, ["push", "-u", "origin", cfg.branch, "--force-with-lease"]);
-      const api = `${cfg.forgejo.url.replace(/\/$/, "")}/api/v1/repos/${cfg.forgejo.repo}/pulls`;
-      const pr = await fetch(api, {
+      const base = `${cfg.forgejo.url.replace(/\/$/, "")}/api/v1/repos/${cfg.forgejo.repo}`;
+      const kopf = { "content-type": "application/json", authorization: `token ${cfg.forgejo.token}` };
+      const pr = await fetch(`${base}/pulls`, {
         method: "POST",
-        headers: { "content-type": "application/json", authorization: `token ${cfg.forgejo.token}` },
+        headers: kopf,
         body: JSON.stringify({ title: `Bibliothekar: Nachtlauf ${new Date().toISOString().slice(0, 10)}`, head: cfg.branch, base: "main", body: report }),
       });
       if (!pr.ok) throw new Error(saeubern(`PR-Erstellung fehlgeschlagen (${pr.status}): ${(await pr.text()).slice(0, 300)}`));
-      const prDaten = (await pr.json()) as { html_url?: string };
-      log(`PR erstellt: ${prDaten.html_url ?? "(URL unbekannt)"}`);
-      return { status: "pr-erstellt", bilanz: report, commits, prUrl: prDaten.html_url };
+      const prDaten = (await pr.json()) as { html_url?: string; number?: number };
+      const prUrl = prDaten.html_url;
+      const prNummer = prDaten.number;
+      log(`PR erstellt: ${prUrl ?? "(URL unbekannt)"}`);
+
+      // Hybrid-Auto-Merge: ohne offene Frage und im auto-Modus selbst zusammenführen.
+      // Bei einer Entscheidungsfrage bleibt der PR bewusst offen — der Tagesimpuls
+      // meldet ihn morgens mit Link. Ein fehlgeschlagener Merge ist nicht fatal:
+      // der PR bleibt stehen und kann von Hand zusammengeführt werden.
+      const modus = cfg.mergeModus ?? "auto";
+      if (modus === "auto" && !offeneFragen && prNummer !== undefined) {
+        const merge = await fetch(`${base}/pulls/${prNummer}/merge`, {
+          method: "POST",
+          headers: kopf,
+          body: JSON.stringify({ Do: "merge", delete_branch_after_merge: true }),
+        });
+        if (merge.ok) {
+          log(`PR #${prNummer} automatisch zusammengeführt.`);
+          return { status: "pr-gemergt", bilanz: report, commits, prUrl, prNummer, gemergt: true, offeneFragen: false };
+        }
+        log(saeubern(`Auto-Merge nicht möglich (${merge.status}) — PR bleibt offen zum manuellen Zusammenführen.`));
+        return { status: "pr-erstellt", bilanz: report, commits, prUrl, prNummer, gemergt: false, offeneFragen };
+      }
+      return { status: "pr-erstellt", bilanz: report, commits, prUrl, prNummer, gemergt: false, offeneFragen };
     }
 
     log(`Lokal-Lauf beendet — ${commits} Commit(s).\n${report}`);
-    return { status: "gearbeitet", bilanz: report, commits };
+    return { status: "gearbeitet", bilanz: report, commits, gemergt: false, offeneFragen };
   } finally {
     await client.close();
   }
@@ -192,6 +236,7 @@ if (import.meta.main) {
     modell: process.env.MODELL ?? "openrouter/auto",
     maxSchritte: Number(process.env.MAX_SCHRITTE ?? 24),
     branch: `librarian/${heute}`,
+    mergeModus: process.env.MERGE_MODUS === "manuell" ? "manuell" : "auto",
     forgejo,
   }).catch((e) => {
     console.error(saeubern((e as Error).message));

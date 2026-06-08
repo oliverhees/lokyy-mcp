@@ -213,6 +213,7 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - 2026-06-07 (Verify): Cross-Vendor-Audit (Cato/GPT-5.4) NICHT möglich — codex CLI nicht installiert; Forge lief offen deklariert auf Opus statt GPT-5.4. Follow-up: Codex installieren, Cato nachholen — bis dahin gilt der adversariale Opus-Pass als Zweitprüfung derselben Familie.
 - 2026-06-07 (B6-Bau): Lücke entdeckt — ab dem Umzug (Lektion 2.7) schreibt der Server auf der Server-Kopie, v1.0.0 committet aber nicht; KONZEPT verlangt „Dateioperationen + Commits". → v1.1-Kriterien ISC-55..58 angelegt (B1c), VOR Produktion von Lektion 2.7 zu bauen. Bis dahin gilt die Brücke aus den Prompts: der Sparringspartner committet (P13) und pusht (P15), endend mit P16.
 - 2026-06-07: Denk-Tools (destillieren, Artikel entwerfen) sind bewusst KEINE Server-Funktion — der Server liefert Arbeitsaufträge (`destillat_auftrag`, `frage_vorbereiten`) und validiert Ergebnisse; das hält ihn deterministisch testbar und modellagnostisch.
+- 2026-06-08 (Olivers First-Principles-Einwand „kein Mensch merged jeden Morgen", v1.2.0): Default-Workflow von Review-Tor auf **Auto-Merge mit Hybrid-Ausnahme** umgestellt (ISC-68..70). Begründung: Bei einem persönlichen Second Brain liegt die Kontrolle NACHHER (lesen/editieren/zurücksetzen — alles versioniert, reversibel, Health-Check, harte PII-Grenze), nicht in einem täglichen Pre-Merge-Gate (Reibungstheater, das niemand macht). Auto = Default (Stufe 1–2); nur bei einer echten Besitzer-Entscheidung (`STATUS: BRAUCHE_ENTSCHEIDUNG` in der Bilanz) bleibt der PR offen. `MERGE_MODUS=manuell` bleibt für Stufe 3 (Team/geteiltes Vault). Fehlgeschlagener Auto-Merge ist nicht-fatal (PR bleibt zum manuellen Mergen stehen). NEU dazu: **Tagesimpuls** (B3b, ISC-71..73) — morgens EINE deterministische Meldung (offene Frage mit Link / freundlicher Hinweis / ruhige Nacht), Versand per Webhook (ntfy-Default, json-Alternative), ohne Webhook ins Log. Das „nicht-destillieren"-Signal wandert nach VORNE (Flag beim Reinlegen in RAW) statt tägliches PR-Ablehnen — sonst käme eine abgelehnte Quelle jede Nacht zurück (offene B-Erweiterung „Status abgelehnt").
 
 ## Verification
 
@@ -234,3 +235,10 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - ISC-52: probe — Grep claude/anthropic: nur Doku-Nennungen (CLAUDE.md-Konvention, Connector-Anleitung)
 - ISC-53: test — Traversal-Proben über drei Tool-Pfade abgelehnt
 - ISC-54: inspection — docs/DEMO-Drehbuch-Ablehnung.md; alle drei Demo-Ablehnungen sind Suite-Fixtures
+
+- ISC-68: test — auto + STATUS:ALLES_KLAR → Status „pr-gemergt", genau der erstellte PR wird über die Merge-API zusammengeführt; STATUS-Zeile aus dem PR-Report getilgt
+- ISC-69: test — auto + STATUS:BRAUCHE_ENTSCHEIDUNG → PR bleibt offen (kein Merge-Aufruf), Report trägt den „wartet auf deine Entscheidung"-Hinweis
+- ISC-70: test — MERGE_MODUS=manuell → auch ohne offene Frage kein Auto-Merge
+- ISC-71: test — Tagesimpuls bei offenem librarian-PR: Titel nennt „Frage", Text enthält die PR-URL
+- ISC-72: test — nur frisch (im Fenster) gemergte PRs → „alles erledigt"; alte Merges fallen aus dem Zeitfenster → „ruhige Nacht"
+- ISC-73: test — ntfy-Webhook erhält den Body (UTF-8) und einen reinen ASCII-Titel-Header; nicht erreichbarer Webhook bricht den Job nicht ab

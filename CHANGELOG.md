@@ -1,5 +1,20 @@
 # Changelog — lokyy-mcp
 
+## 1.2.0 (2026-06-08) — Auto-Merge, Hybrid & Tagesimpuls (B3b)
+
+- **Bibliothekar Auto-Merge (Default):** Ein sauberer Nachtlauf wird selbst
+  zusammengeführt — alles, was in RAW landet, kommt ohne tägliches Klicken ins
+  Brain. Steuerbar über `MERGE_MODUS` (`auto` | `manuell`).
+- **Hybrid-Ausnahme:** Hat der Lauf eine echte Entscheidungsfrage, bleibt der PR
+  bewusst offen. Signal ist eine deterministische Schlusszeile der Bilanz
+  (`STATUS: ALLES_KLAR` / `STATUS: BRAUCHE_ENTSCHEIDUNG`); ein fehlgeschlagener
+  Auto-Merge ist nicht fatal (PR bleibt zum manuellen Zusammenführen stehen).
+- **Tagesimpuls** (`aktionen/MorgenMeldung.ts` + `morgen-meldung.yml`): morgens
+  EINE Meldung — offene Fragen mit Link, sonst freundlicher Hinweis, sonst
+  „ruhige Nacht". Deterministisch (kein LLM), Versand per Webhook (ntfy-Default;
+  Slack/Discord/Relay via `json`), ohne Webhook ins Log.
+- 17 neue Tests (70 gesamt), tsc sauber.
+
 ## 1.1.0 (2026-06-07) — die git-Schicht (B1c)
 
 - `--git`: Der Server committet jede Schreiboperation selbst — exakt die

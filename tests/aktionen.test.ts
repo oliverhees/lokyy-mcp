@@ -2,11 +2,13 @@
  *  ISC-59..62, 65, 66. Der echte OpenRouter-Durchstich (ISC-63) läuft separat. */
 import { describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { frischeBasis, QUELLE, RAW_NAME, TESTTAG } from "./helfer.ts";
 import { bibliothekarLauf } from "../aktionen/Bibliothekar.ts";
 import { wochenBericht } from "../aktionen/WochenReview.ts";
+import { morgenMeldung } from "../aktionen/MorgenMeldung.ts";
 
 const sh = (cmd: string) => execSync(cmd, { encoding: "utf8", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });
 const API_KEY = "mock-key-mit-mehr-als-16-zeichen";
@@ -36,6 +38,53 @@ function gitBasis() {
   sh(`git -C ${basis.kb} init -q -b main && git -C ${basis.kb} -c user.name=t -c user.email=t@t add -A && git -C ${basis.kb} -c user.name=t -c user.email=t@t commit -qm start`);
   return basis;
 }
+
+/** Wie gitBasis, zusätzlich ein bare-Remote als origin/main (für den Push im PR-Pfad). */
+function gitBasisMitRemote() {
+  const basis = gitBasis();
+  const bare = mkdtempSync(join(tmpdir(), "lokyy-remote-"));
+  sh(`git init -q --bare ${bare}`);
+  sh(`git -C ${basis.kb} remote add origin ${bare} && git -C ${basis.kb} push -q -u origin main`);
+  return { ...basis, bare };
+}
+
+/** Mock-Forgejo-API: nimmt PRs an, protokolliert Merges, liefert PR-Listen. */
+function mockForgejo(opts: { open?: unknown[]; closed?: unknown[] } = {}) {
+  const erstellt: Record<string, unknown>[] = [];
+  const gemergt: number[] = [];
+  let zaehler = 0;
+  const dienst = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: async (req) => {
+      const url = new URL(req.url);
+      const p = url.pathname;
+      const mergeTreffer = p.match(/\/pulls\/(\d+)\/merge$/);
+      if (req.method === "POST" && mergeTreffer) {
+        gemergt.push(Number(mergeTreffer[1]));
+        return new Response("", { status: 200 });
+      }
+      if (req.method === "POST" && p.endsWith("/pulls")) {
+        const body = (await req.json()) as Record<string, unknown>;
+        const number = ++zaehler;
+        erstellt.push({ number, ...body });
+        return Response.json({ number, html_url: `http://forgejo.test/pr/${number}` });
+      }
+      if (req.method === "GET" && p.endsWith("/pulls")) {
+        const zustand = url.searchParams.get("state");
+        return Response.json(zustand === "closed" ? (opts.closed ?? []) : (opts.open ?? []));
+      }
+      return new Response("not found", { status: 404 });
+    },
+  });
+  return { url: `http://127.0.0.1:${dienst.port}`, erstellt, gemergt, stop: () => dienst.stop(true) };
+}
+
+const ARTIKEL_ARG = {
+  slug: "Digitaler-Posteingang", status: "im Aufbau", stand: TESTTAG,
+  quellen: [RAW_NAME], kurzfassung: "Der Posteingang zuerst.",
+  inhalt: "Belege digital empfangen spart Zeit.", beschreibung: "Posteingang als erster Schritt",
+};
 
 describe("Bibliothekar-Adapter (ISC-59..62)", () => {
   test("Voller Nachtlauf: destilliert über Werkzeuge, committet, Bilanz wird Report", async () => {
@@ -121,6 +170,143 @@ describe("Bibliothekar-Adapter (ISC-59..62)", () => {
     } finally {
       echo.stop(true);
     }
+  });
+});
+
+describe("Auto-Merge & Hybrid (ISC-68..70)", () => {
+  function quelleCommitten(basis: ReturnType<typeof gitBasisMitRemote>) {
+    sh(`git -C ${basis.kb} -c user.name=t -c user.email=t@t add -A && git -C ${basis.kb} -c user.name=t -c user.email=t@t commit -qm quelle`);
+  }
+
+  test("auto + ALLES_KLAR: PR wird selbst zusammengeführt", async () => {
+    const basis = gitBasisMitRemote();
+    await basis.w.quelleAufnehmen(QUELLE);
+    quelleCommitten(basis);
+    const fj = mockForgejo();
+    const mock = mockLLM([
+      { tool: { name: "quelle_lesen", args: { dateiname: RAW_NAME } } },
+      { tool: { name: "artikel_schreiben", args: ARTIKEL_ARG } },
+      { tool: { name: "quelle_verarbeitet_markieren", args: { dateiname: RAW_NAME } } },
+      { text: "Bilanz: 1 Quelle destilliert, Struktur sauber.\nSTATUS: ALLES_KLAR" },
+    ]);
+    try {
+      const e = await bibliothekarLauf({
+        repoPfad: basis.kb, baseUrl: mock.url, apiKey: API_KEY, modell: "mock", maxSchritte: 8,
+        branch: "librarian/test", forgejo: { url: fj.url, repo: "t/kb", token: "tok" }, log: () => {},
+      });
+      expect(e.status).toBe("pr-gemergt");
+      expect(e.gemergt).toBe(true);
+      expect(e.offeneFragen).toBe(false);
+      expect(fj.erstellt.length).toBe(1);
+      expect(fj.gemergt).toEqual([1]);            // genau dieser PR wurde gemergt
+      expect(e.bilanz).not.toContain("STATUS:");  // Schlusszeile aus dem Report getilgt
+    } finally { mock.stop(); fj.stop(); }
+  });
+
+  test("auto + BRAUCHE_ENTSCHEIDUNG: PR bleibt offen, kein Merge", async () => {
+    const basis = gitBasisMitRemote();
+    await basis.w.quelleAufnehmen(QUELLE);
+    quelleCommitten(basis);
+    const fj = mockForgejo();
+    const mock = mockLLM([
+      { tool: { name: "quelle_lesen", args: { dateiname: RAW_NAME } } },
+      { tool: { name: "artikel_schreiben", args: ARTIKEL_ARG } },
+      { tool: { name: "quelle_verarbeitet_markieren", args: { dateiname: RAW_NAME } } },
+      { text: "Bilanz: destilliert. Offen: zwei widersprüchliche Stände.\nSTATUS: BRAUCHE_ENTSCHEIDUNG" },
+    ]);
+    try {
+      const e = await bibliothekarLauf({
+        repoPfad: basis.kb, baseUrl: mock.url, apiKey: API_KEY, modell: "mock", maxSchritte: 8,
+        branch: "librarian/test", forgejo: { url: fj.url, repo: "t/kb", token: "tok" }, log: () => {},
+      });
+      expect(e.status).toBe("pr-erstellt");
+      expect(e.gemergt).toBe(false);
+      expect(e.offeneFragen).toBe(true);
+      expect(fj.gemergt).toEqual([]);                       // nichts auto-gemergt
+      expect(e.bilanz).toContain("wartet auf deine Entscheidung");
+    } finally { mock.stop(); fj.stop(); }
+  });
+
+  test("manuell: auch ohne offene Frage kein Auto-Merge", async () => {
+    const basis = gitBasisMitRemote();
+    await basis.w.quelleAufnehmen(QUELLE);
+    quelleCommitten(basis);
+    const fj = mockForgejo();
+    const mock = mockLLM([
+      { tool: { name: "quelle_lesen", args: { dateiname: RAW_NAME } } },
+      { tool: { name: "artikel_schreiben", args: ARTIKEL_ARG } },
+      { tool: { name: "quelle_verarbeitet_markieren", args: { dateiname: RAW_NAME } } },
+      { text: "Bilanz: erledigt.\nSTATUS: ALLES_KLAR" },
+    ]);
+    try {
+      const e = await bibliothekarLauf({
+        repoPfad: basis.kb, baseUrl: mock.url, apiKey: API_KEY, modell: "mock", maxSchritte: 8,
+        branch: "librarian/test", mergeModus: "manuell", forgejo: { url: fj.url, repo: "t/kb", token: "tok" }, log: () => {},
+      });
+      expect(e.status).toBe("pr-erstellt");
+      expect(fj.gemergt).toEqual([]);
+    } finally { mock.stop(); fj.stop(); }
+  });
+});
+
+describe("Tagesimpuls / Morgenmeldung (ISC-71..73)", () => {
+  const FJ = (url: string) => ({ url, repo: "t/kb", token: "tok" });
+  const MORGEN = new Date("2026-06-08T07:00:00Z");
+
+  test("offener Bibliothekar-PR → Meldung mit Link und Aufforderung", async () => {
+    const fj = mockForgejo({
+      open: [{ number: 5, title: "Bibliothekar: Nachtlauf 2026-06-08", html_url: "http://forgejo.test/pr/5", head: { ref: "librarian/2026-06-08" } }],
+      closed: [],
+    });
+    try {
+      const r = await morgenMeldung({ forgejo: FJ(fj.url), heute: MORGEN });
+      expect(r.offen).toBe(1);
+      expect(r.titel).toMatch(/Frage/);
+      expect(r.text).toContain("http://forgejo.test/pr/5");
+    } finally { fj.stop(); }
+  });
+
+  test("nur frisch übernommene PRs → freundlicher Hinweis, keine Frage", async () => {
+    const fj = mockForgejo({
+      open: [],
+      closed: [{ number: 4, title: "x", html_url: "y", head: { ref: "librarian/2026-06-08" }, merged: true, merged_at: "2026-06-08T02:10:00Z" }],
+    });
+    try {
+      const r = await morgenMeldung({ forgejo: FJ(fj.url), heute: MORGEN });
+      expect(r.offen).toBe(0);
+      expect(r.uebernommen).toBe(1);
+      expect(r.titel).toMatch(/erledigt/);
+    } finally { fj.stop(); }
+  });
+
+  test("nichts passiert → ruhige Nacht; alte Merges fallen aus dem Fenster", async () => {
+    const fj = mockForgejo({
+      open: [],
+      closed: [{ number: 1, title: "alt", html_url: "z", head: { ref: "librarian/2026-06-01" }, merged: true, merged_at: "2026-06-01T02:00:00Z" }],
+    });
+    try {
+      const r = await morgenMeldung({ forgejo: FJ(fj.url), heute: MORGEN });
+      expect(r.offen).toBe(0);
+      expect(r.uebernommen).toBe(0);
+      expect(r.titel).toMatch(/ruhige/);
+    } finally { fj.stop(); }
+  });
+
+  test("Webhook (ntfy) bekommt Body und ASCII-Titel-Header", async () => {
+    let titelHeader = "";
+    let body = "";
+    const hook = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: async (req) => {
+      titelHeader = req.headers.get("Title") ?? "";
+      body = await req.text();
+      return new Response("ok");
+    } });
+    const fj = mockForgejo({ open: [], closed: [] });
+    try {
+      const r = await morgenMeldung({ forgejo: FJ(fj.url), heute: MORGEN, webhook: { url: `http://127.0.0.1:${hook.port}`, kanal: "ntfy" } });
+      expect(r.gesendet).toBe(true);
+      expect(body).toContain("Guten Morgen");
+      expect(titelHeader).toMatch(/^[\x20-\x7e]*$/); // reines ASCII (ntfy-Header)
+    } finally { hook.stop(true); fj.stop(); }
   });
 });
 
