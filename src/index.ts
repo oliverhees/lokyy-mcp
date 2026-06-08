@@ -37,12 +37,13 @@ if (!repoPfad) {
       `Nutzung:\n` +
       `  lokyy-mcp --repo <wissensbasis>                stdio-Modus (lokal)\n` +
       `  lokyy-mcp --repo <wissensbasis> --http         HTTP-Modus (LOKYY_TOKEN nötig)\n\n` +
-      `Optionen: --git (Auto-Commit) · --push (mit --git: nach jedem Commit übertragen) · --port 8788 · --host 127.0.0.1 · --blobs <pfad> · --schluessel <pfad> · --url <öffentliche-url> · --version`,
+      `Optionen: --autonom (Nachtlauf: keine Personendaten-Entschlüsselung) · --git (Auto-Commit) · --push (mit --git: nach jedem Commit übertragen) · --port 8788 · --host 127.0.0.1 · --blobs <pfad> · --schluessel <pfad> · --url <öffentliche-url> · --version`,
   );
   process.exit(2);
 }
 
 const repo = new Repo(resolve(repoPfad));
+if (flagge("autonom")) repo.autonom = true;
 const repoName = basename(repo.wurzel);
 const blobs = new BlobAblage(
   arg("blobs") ?? join(dirname(repo.wurzel), ".lokyy-blobs", repoName),

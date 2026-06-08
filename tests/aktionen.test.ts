@@ -150,3 +150,61 @@ describe("Wochen-Review (ISC-65)", () => {
     expect(text).toContain("stille Woche");
   });
 });
+
+describe("Autonomer Modus — Personendaten verlassen den Server nie (PII-Grenze)", () => {
+  const PII = {
+    titel: "Mandantenakte Sommer", inhalt: "Frau Kessler aus Berlin, Einkommen 84.000 €, Scheidung läuft.",
+    typ: "note" as const, enthaelt_personendaten_dritter: "ja" as const,
+    kurzbeschreibung: "Gesprächsnotiz einer Mandantin (anonym)",
+  };
+  const STUB = `${TESTTAG}_mandantenakte-sommer.md`;
+
+  test("--autonom: quelle_lesen entschlüsselt PII-Stub NICHT", async () => {
+    const basis = frischeBasis(); basis.repo.autonom = true;
+    await basis.w.quelleAufnehmen(PII);
+    const gelesen = basis.w.quelleLesen(STUB);
+    expect(gelesen).toContain("NICHT entschlüsselt");
+    expect(gelesen).not.toContain("Kessler");
+    expect(gelesen).not.toContain("84.000");
+  });
+
+  test("ohne --autonom (Mensch am Platz): Entschlüsselung erlaubt", async () => {
+    const basis = frischeBasis(); // autonom=false
+    await basis.w.quelleAufnehmen(PII);
+    expect(basis.w.quelleLesen(STUB)).toContain("Kessler");
+  });
+
+  test("--autonom: destillat_auftrag spart PII-Quellen aus, meldet das ehrlich", async () => {
+    const basis = frischeBasis(); basis.repo.autonom = true;
+    await basis.w.quelleAufnehmen(PII);
+    await basis.w.quelleAufnehmen({ ...QUELLE }); // eine normale dazu
+    const auftrag = basis.w.destillatAuftrag();
+    expect(auftrag).toContain(RAW_NAME);          // normale Quelle gelistet
+    expect(auftrag).not.toContain(STUB);          // PII-Quelle nicht gelistet
+    expect(auftrag).toContain("personenbezogene Quelle(n) wurden bewusst ausgelassen");
+  });
+
+  test("Nachtlauf-Durchstich (Mock): Klartext der PII-Quelle erreicht das Modell nie", async () => {
+    const basis = gitBasis(); basis.repo.autonom = true;
+    await basis.w.quelleAufnehmen(PII);
+    sh(`git -C ${basis.kb} -c user.name=t -c user.email=t@t add -A && git -C ${basis.kb} -c user.name=t -c user.email=t@t commit -qm pii`);
+
+    // Mock-Endpoint protokolliert ALLES, was an "das Modell" geschickt wird.
+    let gesehen = "";
+    const dienst = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: async (req) => {
+      gesehen += await req.text();
+      return Response.json({ choices: [{ message: { role: "assistant", content: "NICHTS_ZU_TUN" } }] });
+    }});
+    try {
+      // Der Bibliothekar startet den Server selbst mit --autonom (echter Subprozess).
+      await bibliothekarLauf({
+        repoPfad: basis.kb, baseUrl: `http://127.0.0.1:${dienst.port}`, apiKey: API_KEY,
+        modell: "mock", maxSchritte: 3, branch: "librarian/test", log: () => {},
+      });
+      expect(gesehen).not.toContain("Kessler");
+      expect(gesehen).not.toContain("84.000");
+    } finally {
+      dienst.stop(true);
+    }
+  });
+});

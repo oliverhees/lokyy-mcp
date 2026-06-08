@@ -19,6 +19,11 @@ export class Repo {
   /** Von der laufenden Schreiboperation berührte Pfade — für exaktes git-Staging. */
   private beruehrt = new Set<string>();
 
+  /** Autonomer Modus (Nachtlauf): Blob+Stub-Quellen werden NIE entschlüsselt und
+   *  nie zum Destillieren angeboten — geschützte Personendaten verlassen den
+   *  Server nicht, egal welches Cloud-Modell dahinterhängt. */
+  autonom = false;
+
   constructor(wurzel: string, private uhr: Uhr = () => new Date()) {
     this.wurzel = resolve(wurzel);
     if (!existsSync(this.wurzel)) {
@@ -143,14 +148,20 @@ export class Repo {
     this.atomarSchreiben(pfad, neu.join("\n"));
   }
 
-  unverarbeitete(): { dateiname: string; beschreibung: string }[] {
+  /** Ist diese RAW-Datei ein Blob+Stub (geschützte Personendaten)? */
+  istStub(dateiname: string): boolean {
+    const p = `RAW/${dateiname}`;
+    return this.existiert(p) && /^asset: asset:\/\//m.test(this.lies(p));
+  }
+
+  unverarbeitete(): { dateiname: string; beschreibung: string; stub: boolean }[] {
     if (!this.existiert("RAW/_INGESTED.md")) return [];
     const zeilen = this.lies("RAW/_INGESTED.md").split("\n");
-    const out: { dateiname: string; beschreibung: string }[] = [];
+    const out: { dateiname: string; beschreibung: string; stub: boolean }[] = [];
     for (const z of zeilen) {
       const teile = z.split("|").map((t) => t.trim());
       if (teile.length >= 6 && /\.md$/.test(teile[1]) && teile[5] === "nein") {
-        out.push({ dateiname: teile[1], beschreibung: teile[4] });
+        out.push({ dateiname: teile[1], beschreibung: teile[4], stub: this.istStub(teile[1]) });
       }
     }
     return out;

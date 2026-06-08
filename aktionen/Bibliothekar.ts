@@ -77,7 +77,9 @@ export async function bibliothekarLauf(cfg: LaufKonfiguration): Promise<{
   await client.connect(
     new StdioClientTransport({
       command: "bun",
-      args: [join(import.meta.dir, "..", "src", "index.ts"), "--repo", cfg.repoPfad, ...(istGit ? ["--git"] : [])],
+      // --autonom: harte Schranke gegen Personendaten-Leck in die Cloud (geschützte
+      // Blob+Stub-Quellen werden im Nachtlauf nie entschlüsselt, nie destilliert).
+      args: [join(import.meta.dir, "..", "src", "index.ts"), "--repo", cfg.repoPfad, "--autonom", ...(istGit ? ["--git"] : [])],
     }),
   );
 

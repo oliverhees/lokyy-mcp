@@ -116,6 +116,16 @@ export class Werkzeuge {
       return `Diese Quelle wurde auf Verlangen gelöscht (Tombstone).\n\n${inhalt}`;
     }
     if (asset) {
+      if (this.repo.autonom) {
+        // Harte Schranke: Im Nachtlauf wird kein Personendaten-Blob entschlüsselt.
+        // Der Bibliothekar sieht nur den Stub — geschütztes Wissen verlässt den
+        // Server nie Richtung Cloud, unabhängig vom Modell.
+        return (
+          `[Personenbezogene Quelle — im autonomen Nachtlauf NICHT entschlüsselt.]\n` +
+          `Diese Quelle bleibt dem nächtlichen Bibliothekar verschlossen; sie wird nur ` +
+          `lokal mit ausdrücklicher Freigabe des Besitzers bearbeitet.\n\n${inhalt}`
+        );
+      }
       const klartext = this.blobs.lesen(asset[1]);
       return `[Entschlüsselt aus ${asset[1]} — Klartext liegt NICHT im Repo]\n\n${klartext}`;
     }
@@ -184,13 +194,21 @@ export class Werkzeuge {
 
   // ── destillat_auftrag / quelle_verarbeitet_markieren ────
   destillatAuftrag(): string {
-    const offen = this.repo.unverarbeitete();
+    const alle = this.repo.unverarbeitete();
+    // Im autonomen Modus sind Blob+Stub-Quellen tabu — sie werden weder gelistet
+    // noch entschlüsselt; nur lokal mit Freigabe bearbeitbar.
+    const offen = this.repo.autonom ? alle.filter((q) => !q.stub) : alle;
+    const uebersprungen = this.repo.autonom ? alle.filter((q) => q.stub).length : 0;
+    const fussnote = uebersprungen > 0
+      ? `\n\nHinweis: ${uebersprungen} personenbezogene Quelle(n) wurden bewusst ausgelassen — sie bleiben dem Nachtlauf verschlossen (Datenschutz).`
+      : "";
     if (offen.length === 0) {
-      return "Nichts zu destillieren — alle registrierten Quellen sind verarbeitet. Das ist ein gutes Ergebnis, kein Fehler.";
+      return "Nichts zu destillieren — alle für den Nachtlauf zugänglichen Quellen sind verarbeitet. Das ist ein gutes Ergebnis, kein Fehler." + fussnote;
     }
     return (
       `DESTILLAT-AUFTRAG (${offen.length} unverarbeitete Quelle(n)):\n\n` +
       offen.map((q) => `- ${q.dateiname} — ${q.beschreibung}`).join("\n") +
+      fussnote +
       `\n\nVorgehen (die Denkarbeit liegt bei dir, der Server validiert):\n` +
       `1. Lies jede Quelle mit quelle_lesen.\n` +
       `2. Ein Artikel = ein Konzept; erzwinge keine Aufteilung bei kurzen Quellen.\n` +
