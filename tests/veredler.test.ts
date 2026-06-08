@@ -75,6 +75,30 @@ describe("artikel_vernetzen (Werkzeug)", () => {
   });
 });
 
+describe("notiz_anlegen", () => {
+  test("legt strukturierte Notiz in RAW/_notizen/ an: durchsuchbar, nicht destilliert, Check sauber", async () => {
+    const b = frischeBasis();
+    await b.w.notizAnlegen({ titel: "Gedanke zum Posteingang", inhalt: "Erst sammeln, dann ordnen.", tags: ["produktiv", "posteingang"] });
+    const treffer = b.repo.rawDateien().filter((f) => f.startsWith("_notizen/"));
+    expect(treffer.length).toBe(1);
+    const inhalt = readFileSync(join(b.kb, "RAW", treffer[0]), "utf8");
+    expect(inhalt).toContain("title: Gedanke zum Posteingang");
+    expect(inhalt).toContain("type: note");
+    expect(inhalt).toContain("tags: produktiv, posteingang");
+    // durchsuchbar, aber NICHT im Destillat-Auftrag (Hände-weg-Zone)
+    expect(b.w.durchsuchen("Posteingang")).toContain("RAW/_notizen/");
+    expect(b.repo.unverarbeitete().map((q) => q.dateiname)).not.toContain(treffer[0]);
+    // freie Notiz lässt den Struktur-Check sauber
+    expect(b.w.gesundheitsCheck()).toContain("0 Fehler");
+  });
+
+  test("leere Notiz und ungültiges Tag werden abgelehnt", async () => {
+    const b = frischeBasis();
+    await expect(b.w.notizAnlegen({ titel: "X", inhalt: "  " })).rejects.toThrow(/leere Notiz/);
+    await expect(b.w.notizAnlegen({ titel: "Y", inhalt: "ok", tags: ["mit leer"] })).rejects.toThrow(/Tag/);
+  });
+});
+
 describe("session_speichern", () => {
   test('legt eine Session-Quelle in RAW/sessions/ an, die destilliert werden kann', async () => {
     const b = frischeBasis();

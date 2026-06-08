@@ -1,5 +1,14 @@
 # Changelog — lokyy-mcp
 
+## 1.6.0 (2026-06-08) — notiz_anlegen ("neue Notiz")
+
+- **`notiz_anlegen`** — legt eine strukturierte persönliche Notiz in
+  `RAW/_notizen/` an, mit festem Frontmatter (`title`, `date_added`, `type: note`,
+  `tags`). Durchsuchbar, aber bewusst nie destilliert und nicht geprüft (das
+  persönliche Notiz-Fach). Befehl „neue Notiz". Das feste Schema sorgt dafür,
+  dass Notizen nicht im Wildwuchs untergehen.
+- 14 MCP-Tools. 2 neue Tests (91 gesamt), tsc sauber.
+
 ## 1.5.0 (2026-06-08) — kb-lint v2 (B5)
 
 - **`scripts/KbLint.ts`** — standalone-Prüfer für eine Wissensbasis, mit GENAU

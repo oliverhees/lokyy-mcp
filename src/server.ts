@@ -13,7 +13,7 @@ import { BlobAblage } from "./loeschmodul.ts";
 import { Werkzeuge } from "./werkzeuge.ts";
 import { Ablehnung, STATUS_TRIAS, TYP_VOKABULAR } from "./texte.ts";
 
-export const VERSION = "1.5.0";
+export const VERSION = "1.6.0";
 const ANWEISUNGEN = join(import.meta.dir, "..", "anweisungen");
 
 type ToolErgebnis = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -131,6 +131,23 @@ export function baueServer(repo: Repo, blobs: BlobAblage, git?: GitSchicht): Mcp
       },
     },
     (a) => sicher(() => w.artikelVernetzen(a.slug, a.verwandt, a.tags)),
+  );
+
+  server.registerTool(
+    "notiz_anlegen",
+    {
+      title: "Neue Notiz",
+      description:
+        'Legt eine strukturierte persönliche Notiz in RAW/_notizen/ an ("neue Notiz") — mit festem ' +
+        "Frontmatter (title, date_added, type, tags). Durchsuchbar, aber bewusst nie destilliert und " +
+        "nicht geprüft (dein persönliches Notiz-Fach). Für eigenes, fertiges Wissen mit Quellen nutze artikel_schreiben.",
+      inputSchema: {
+        titel: z.string().describe("Kurzer Titel — wird Dateiname und macht die Notiz auffindbar"),
+        inhalt: z.string().describe("Der Inhalt der Notiz"),
+        tags: z.array(z.string()).optional().describe("Schlagwörter (einzelne Wörter, keine Leer-/Sonderzeichen)"),
+      },
+    },
+    (a) => sicher(() => w.notizAnlegen(a)),
   );
 
   server.registerTool(

@@ -261,6 +261,38 @@ export class Werkzeuge {
     });
   }
 
+  // ── notiz_anlegen ("neue Notiz") ───────────────────────
+  /**
+   * Legt eine strukturierte persönliche Notiz in RAW/_notizen/ an — mit festem
+   * Frontmatter (title, date_added, type, tags). Bewusst in der „Hände weg"-Zone:
+   * durchsuchbar, aber NIE destilliert und NICHT vom Struktur-Check geprüft.
+   * Das feste Schema sorgt dafür, dass Notizen nicht im Wildwuchs untergehen.
+   */
+  notizAnlegen(a: { titel: string; inhalt: string; tags?: string[] }): Promise<string> {
+    return this.repo.schreiben(() => {
+      const titel = nfc(a.titel.trim());
+      if (titel.length === 0) {
+        throw new Ablehnung("Notiz", "Eine Notiz braucht einen Titel — er wird zum Dateinamen und macht sie auffindbar.", "Gib der Notiz einen kurzen Titel.");
+      }
+      if (a.inhalt.trim().length === 0) {
+        throw new Ablehnung("Notiz", "Eine leere Notiz hält nichts fest.", "Schreib den Gedanken in `inhalt`.");
+      }
+      for (const t of a.tags ?? []) tagPruefen(t);
+      const dateiname = `${this.repo.heute()}_${titelZuSlug(titel)}.md`;
+      const relpfad = `_notizen/${dateiname}`;
+      if (this.repo.existiert(`RAW/${relpfad}`)) {
+        throw new Ablehnung("Notiz", "Es gibt heute schon eine Notiz mit diesem Titel.", `"${relpfad}" existiert bereits. Wähle einen unterscheidenden Titel.`);
+      }
+      const fm = ["---", `title: ${titel}`, `date_added: ${this.repo.heute()}`, "type: note"];
+      if (a.tags && a.tags.length > 0) fm.push(`tags: ${a.tags.join(", ")}`);
+      fm.push("---", "");
+      this.repo.atomarSchreiben(`RAW/${relpfad}`, fm.join("\n") + a.inhalt.trim() + "\n");
+      this.repo.changelog(`Notiz angelegt: ${relpfad}`);
+      return `Notiz angelegt: RAW/${relpfad} — durchsuchbar, aber nicht destilliert (dein persönliches Notiz-Fach).` +
+        this.committe(`Notiz angelegt: ${dateiname}`);
+    });
+  }
+
   // ── session_speichern ("save this session") ────────────
   /**
    * Hält die Kernerkenntnisse eines Chats als Quelle in RAW/sessions/ fest —

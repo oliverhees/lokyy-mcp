@@ -221,6 +221,8 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 
 - 2026-06-08 (B5 kb-lint v2, v1.5.0): Standalone-Linter `scripts/KbLint.ts` prüft eine Wissensbasis mit demselben `workspacePruefen` wie der Server — „EINE Regelquelle" eingelöst. Damit das auch für die DATEI-Walk-Logik gilt (RAW-Rekursion + `_`-Ausschluss, gerade erst ergänzt), in neues Modul `src/workspace.ts` (`rawDateienVon`, `istAusgeschlossen`, `leseWorkspace`) extrahiert; `Repo.rawDateien/ausgeschlossen/alsWorkspace` delegieren jetzt dorthin (kein doppelter Code, 89 Tests grün nach Refactor). kb-lint ist Server-/Modell-/Key-frei, Exit 0/1/2 → CI- und pre-commit-tauglich. Gegen den Starter geprüft: 0/0.
 
+- 2026-06-08 (notiz_anlegen, v1.6.0): Auf Olivers Wunsch „Befehl für neue Notiz + Frontmatter-Schema, damit Notizen nicht untergehen". Entscheid: **Notizen in `RAW/_notizen/`** (Olivers Wahl „dann hab ich beides" — freie + strukturierte Notizen in einem persönlichen Fach), NICHT als Wiki-These-Artikel. `notiz_anlegen` schreibt festes Frontmatter (title/date_added/type:note/tags) in die Hände-weg-Zone: durchsuchbar, aber nie destilliert, nicht geprüft, NICHT im Wiki-INDEX und NICHT vernetzt (bewusster Trade-off — Findbarkeit via Schema + Suche + Changelog/Wochen-Review). 14 MCP-Tools. Doku-Folge: Note-Schema in lokyy-kb-starter `KONVENTIONEN.md` + Befehl in `AGENTS.md`.
+
 ## Verification
 
 - ISC-55: test — Commit je Schreibwerkzeug mit deutscher Nachricht; git show --name-only = exakt die 3 berührten Pfade; ohne Schicht kein .git; Ablehnung erzeugt keinen Commit
@@ -262,3 +264,4 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - ISC-83: test — 13 MCP-Tools gelistet (inkl. artikel_vernetzen, session_speichern)
 - ISC-84: test — Veredler-Lauf (Mock-LLM): vernetzt zwei Artikel, Auto-Merge, Prosa unangetastet
 - ISC-85: test — kb-lint (leseWorkspace + workspacePruefen): frische Basis 0 Fehler; RAW ohne Frontmatter + kaputter Wiki-Verweis werden gemeldet; freie Notiz in `_notizen/` bleibt ungeprüft. Probe: `KbLint.ts` gegen den Starter = 0/0
+- ISC-86: test — `notiz_anlegen` schreibt strukturierte Notiz nach RAW/_notizen/ (title/type/tags im Frontmatter), durchsuchbar, NICHT im Destillat-Auftrag, gesundheits_check bleibt 0/0; leere Notiz + ungültiges Tag werden abgelehnt
