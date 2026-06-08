@@ -9,6 +9,7 @@ import { frischeBasis, QUELLE, RAW_NAME, TESTTAG } from "./helfer.ts";
 import { bibliothekarLauf } from "../aktionen/Bibliothekar.ts";
 import { wochenBericht } from "../aktionen/WochenReview.ts";
 import { morgenMeldung } from "../aktionen/MorgenMeldung.ts";
+import { veredlerLauf } from "../aktionen/Veredler.ts";
 
 const sh = (cmd: string) => execSync(cmd, { encoding: "utf8", env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } });
 const API_KEY = "mock-key-mit-mehr-als-16-zeichen";
@@ -245,6 +246,36 @@ describe("Auto-Merge & Hybrid (ISC-68..70)", () => {
       });
       expect(e.status).toBe("pr-erstellt");
       expect(fj.gemergt).toEqual([]);
+    } finally { mock.stop(); fj.stop(); }
+  });
+});
+
+describe("Veredler-Lauf (ISC-84)", () => {
+  test("vernetzt zwei Artikel und merged automatisch, Inhalt unangetastet", async () => {
+    const basis = gitBasisMitRemote();
+    await basis.w.quelleAufnehmen(QUELLE);
+    await basis.w.artikelSchreiben({ slug: "Digitaler-Posteingang", status: "im Aufbau", stand: TESTTAG, quellen: [RAW_NAME], kurzfassung: "K.", inhalt: "Inhalt A — bitte unverändert lassen.", beschreibung: "A" });
+    await basis.w.artikelSchreiben({ slug: "Beleg-Management", status: "im Aufbau", stand: TESTTAG, quellen: [RAW_NAME], kurzfassung: "K.", inhalt: "Inhalt B.", beschreibung: "B" });
+    sh(`git -C ${basis.kb} -c user.name=t -c user.email=t@t add -A && git -C ${basis.kb} -c user.name=t -c user.email=t@t commit -qm artikel`);
+
+    const fj = mockForgejo();
+    const mock = mockLLM([
+      { tool: { name: "artikel_lesen", args: { slug: "INDEX" } } },
+      { tool: { name: "artikel_vernetzen", args: { slug: "Digitaler-Posteingang", verwandt: ["Beleg-Management"], tags: ["digital"] } } },
+      { text: "Bilanz: 1 Verweis gesetzt, 1 Tag." },
+    ]);
+    try {
+      const e = await veredlerLauf({
+        repoPfad: basis.kb, baseUrl: mock.url, apiKey: API_KEY, modell: "mock", maxSchritte: 6,
+        branch: "veredler/test", forgejo: { url: fj.url, repo: "t/kb", token: "tok" }, log: () => {},
+      });
+      expect(e.status).toBe("pr-gemergt");
+      expect(e.gemergt).toBe(true);
+      expect(fj.gemergt).toEqual([1]);
+      const datei = readFileSync(join(basis.kb, "Wiki", "Digitaler-Posteingang.md"), "utf8");
+      expect(datei).toContain("## Verwandt\n\n- [[Beleg-Management]]");
+      expect(datei).toContain("Tags: digital");
+      expect(datei).toContain("Inhalt A — bitte unverändert lassen."); // Prosa erhalten
     } finally { mock.stop(); fj.stop(); }
   });
 });

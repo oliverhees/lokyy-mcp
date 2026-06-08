@@ -1,5 +1,22 @@
 # Changelog — lokyy-mcp
 
+## 1.4.0 (2026-06-08) — Veredler & Session-Capture
+
+- **`artikel_vernetzen`** (nicht-destruktiv): setzt NUR Querverweise (Verwandt)
+  und Tags eines bestehenden Artikels — Kurzfassung und Inhalt bleiben Zeichen
+  für Zeichen erhalten. So bekommen auch handgeschriebene Wiki-Notizen
+  automatisch Querverweise, ohne dass ihr Inhalt angetastet wird.
+- **Tags** im Artikel-Format (optionale `Tags:`-Kopfzeile, Vokabular wie Slugs).
+- **Veredler** (`aktionen/Veredler.ts` + `veredler.yml`, B3c): nächtlicher
+  Vernetzungs-Lauf NACH dem Bibliothekar — liest den Index, erkennt Bezüge,
+  vernetzt + taggt über `artikel_vernetzen`. Branch + PR + Auto-Merge wie der
+  Bibliothekar (Vernetzung ist verlustfrei → im auto-Modus immer gemergt).
+- **`session_speichern`** ("save this session"): hält Chat-Kernerkenntnisse als
+  Quelle in `RAW/sessions/` fest — dünne Hülle über `quelle_aufnehmen`, wird im
+  Nachtlauf wie jede Quelle destilliert. So gelangt auch ins Gehirn, was nur im
+  Gespräch gesagt wurde (Karpathy-Element, das bisher fehlte).
+- 10 neue Tests (85 gesamt), tsc sauber. Zwei neue Werkzeuge → 13 MCP-Tools.
+
 ## 1.3.0 (2026-06-08) — RAW-Unterordner & "_"-Ausschluss
 
 - **RAW darf Unterordner haben** (`RAW/transkripte/…`): `quelle_aufnehmen` nimmt

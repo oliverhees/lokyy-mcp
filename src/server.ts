@@ -13,7 +13,7 @@ import { BlobAblage } from "./loeschmodul.ts";
 import { Werkzeuge } from "./werkzeuge.ts";
 import { Ablehnung, STATUS_TRIAS, TYP_VOKABULAR } from "./texte.ts";
 
-export const VERSION = "1.3.0";
+export const VERSION = "1.4.0";
 const ANWEISUNGEN = join(import.meta.dir, "..", "anweisungen");
 
 type ToolErgebnis = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -109,11 +109,45 @@ export function baueServer(repo: Repo, blobs: BlobAblage, git?: GitSchicht): Mcp
         inhalt: z.string().describe("Der Artikeltext; [[Verweise]] nur auf existierende Artikel-Slugs"),
         verwandt: z.array(z.string()).optional().describe("Slugs verwandter Artikel"),
         offene_fragen: z.array(z.string()).optional().describe("Offene Fragen dieses Artikels"),
+        tags: z.array(z.string()).optional().describe("Schlagwörter (einzelne Wörter, keine Leer-/Sonderzeichen)"),
         beschreibung: z.string().describe("Ein-Satz-Beschreibung für die INDEX-Zeile"),
         aktualisieren: z.boolean().optional().describe("true, wenn ein bestehender Artikel bewusst ersetzt wird"),
       },
     },
     (a) => sicher(() => w.artikelSchreiben(a)),
+  );
+
+  server.registerTool(
+    "artikel_vernetzen",
+    {
+      title: "Artikel vernetzen",
+      description:
+        "Setzt NUR Querverweise (Verwandt) und Tags eines bestehenden Artikels neu — Kurzfassung und Inhalt " +
+        "bleiben Zeichen für Zeichen erhalten. Für den Veredelungs-Lauf: vernetzen, ohne Prosa umzuschreiben.",
+      inputSchema: {
+        slug: z.string().describe("Slug des bestehenden Artikels"),
+        verwandt: z.array(z.string()).optional().describe("Slugs verwandter Artikel — ersetzt den Verwandt-Abschnitt (leeres Array entfernt ihn)"),
+        tags: z.array(z.string()).optional().describe("Schlagwörter — ersetzt die Tags-Zeile (leeres Array entfernt sie)"),
+      },
+    },
+    (a) => sicher(() => w.artikelVernetzen(a.slug, a.verwandt, a.tags)),
+  );
+
+  server.registerTool(
+    "session_speichern",
+    {
+      title: "Session speichern",
+      description:
+        'Hält die Kernerkenntnisse eines Chats als Quelle in RAW/sessions/ fest ("save this session") — wird ' +
+        "im Nachtlauf wie jede Quelle destilliert. So gelangt auch ins Gehirn, was nur im Gespräch gesagt wurde.",
+      inputSchema: {
+        titel: z.string().describe("Kurzer Titel der Session"),
+        inhalt: z.string().describe("Die Kernerkenntnisse / Zusammenfassung des Chats"),
+        kurzbeschreibung: z.string().optional().describe("Ein Satz fürs Register"),
+        enthaelt_personendaten_dritter: z.enum(["ja", "nein"]).optional().describe("Personendaten Dritter im Text? Im Zweifel: ja"),
+      },
+    },
+    (a) => sicher(() => w.sessionSpeichern(a)),
   );
 
   server.registerTool(

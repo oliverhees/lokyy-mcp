@@ -25,6 +25,21 @@ export interface ArtikelFelder {
   inhalt: string;
   verwandt?: string[]; // Slugs anderer Artikel
   offene_fragen?: string[];
+  tags?: string[]; // Schlagwörter, einzelne Wörter
+}
+
+/** Tag-Vokabular: einzelne Wörter aus Buchstaben/Ziffern/Bindestrich — keine
+ *  Leerzeichen, kein Komma (sonst wäre die Tags-Zeile nicht maschinell trennbar). */
+export function tagPruefen(tag: string): string {
+  const t = nfc(tag.trim());
+  if (!/^[\p{L}\p{N}_-]+$/u.test(t)) {
+    throw new Ablehnung(
+      "Tag-Vokabular",
+      "Tags sind einzelne Schlagwörter aus Wort-/Zahl-/Bindestrich-Zeichen — Leerzeichen und Kommas würden die Tags-Zeile unzerlegbar machen.",
+      `"${tag}" ist kein gültiges Tag; nutze z. B. ${t.replace(/[^\p{L}\p{N}]+/gu, "-") || "thema"}.`,
+    );
+  }
+  return t;
 }
 
 export interface QuellenMeta {
@@ -146,6 +161,7 @@ export function artikelPruefen(f: ArtikelFelder, ktx: DoktrinKontext): void {
     );
   }
   datumPruefen(f.stand, "stand");
+  for (const t of f.tags ?? []) tagPruefen(t);
   if (f.quellen.length === 0 && f.status !== "These") {
     throw new Ablehnung(
       "Quellenpflicht",
@@ -227,10 +243,10 @@ export function frontmatterRendern(meta: QuellenMeta & { anonymized?: boolean; a
 }
 
 export function artikelRendern(f: ArtikelFelder): string {
+  const kopf = [`Status: ${f.status}`, `Stand: ${f.stand}`, `Quellen: ${f.quellen.join(", ")}`];
+  if (f.tags && f.tags.length > 0) kopf.push(`Tags: ${f.tags.join(", ")}`);
   const teile = [
-    `Status: ${f.status}`,
-    `Stand: ${f.stand}`,
-    `Quellen: ${f.quellen.join(", ")}`,
+    ...kopf,
     "",
     "## Kurzfassung",
     "",
@@ -251,6 +267,51 @@ export function artikelRendern(f: ArtikelFelder): string {
 
 export function indexZeile(slug: string, beschreibung: string): string {
   return `- [[${slug}]] — ${beschreibung.trim()}`;
+}
+
+/**
+ * Nicht-destruktive Vernetzung (für den Veredler): setzt NUR die Tags-Kopfzeile
+ * und den "## Verwandt"-Abschnitt neu — Kurzfassung, Inhalt und Offene Fragen
+ * bleiben Zeichen für Zeichen erhalten. `verwandt`/`tags` undefined = unverändert
+ * lassen; leeres Array = Abschnitt/Zeile entfernen.
+ *
+ * Reserviert (nur als ganze Zeile): "## Verwandt", "## Offene Fragen" — sie
+ * markieren die verwalteten Abschnitte am Artikelende und dürfen im Fließtext
+ * nicht als eigene Zeile stehen.
+ */
+export function vernetzungAnwenden(text: string, opts: { verwandt?: string[]; tags?: string[] }): string {
+  let t = text;
+
+  // 1) Tags-Kopfzeile (im Kopfblock, direkt nach Quellen).
+  if (opts.tags !== undefined) {
+    const zeile = opts.tags.length > 0 ? `Tags: ${opts.tags.join(", ")}` : "";
+    if (/^Tags:.*$/m.test(t)) {
+      t = t.replace(/^Tags:.*$\n?/m, zeile ? zeile + "\n" : "");
+    } else if (zeile && /^Quellen:.*$/m.test(t)) {
+      t = t.replace(/^(Quellen:.*)$/m, `$1\n${zeile}`);
+    }
+  }
+
+  // 2) "## Verwandt"-Abschnitt — am Artikelende, vor "## Offene Fragen".
+  if (opts.verwandt !== undefined) {
+    const zeilen = t.split("\n");
+    const iVerw = zeilen.indexOf("## Verwandt");
+    const iOffen = zeilen.indexOf("## Offene Fragen");
+    const tail = [iVerw, iOffen].filter((i) => i >= 0).sort((a, b) => a - b)[0] ?? zeilen.length;
+    const prosa = zeilen.slice(0, tail);
+    while (prosa.length && prosa[prosa.length - 1].trim() === "") prosa.pop();
+    const offen = iOffen >= 0 ? zeilen.slice(iOffen) : [];
+    const block =
+      opts.verwandt.length > 0
+        ? `## Verwandt\n\n${opts.verwandt.map((v) => `- [[${v}]]`).join("\n")}`
+        : "";
+    const stuecke = [prosa.join("\n")];
+    if (block) stuecke.push(block);
+    if (offen.length) stuecke.push(offen.join("\n").replace(/\n+$/, ""));
+    t = stuecke.join("\n\n") + "\n";
+  }
+
+  return t;
 }
 
 export function kurzform(frage: string): string {

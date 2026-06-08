@@ -21,7 +21,9 @@ import {
   quellenMetaPruefen,
   reportPruefen,
   slugPruefen,
+  tagPruefen,
   titelZuSlug,
+  vernetzungAnwenden,
   workspacePruefen,
   type ArtikelFelder,
 } from "./validierung.ts";
@@ -209,6 +211,71 @@ export class Werkzeuge {
       this.repo.changelog(`Artikel ${existiert ? "aktualisiert" : "angelegt"}: [[${f.slug}]] (${f.status})`);
       return `${existiert ? "Aktualisiert" : "Angelegt"}: ${pfad} — Status ${f.status}, ${f.quellen.length} Quelle(n). INDEX-Zeile: ${indexZeile(f.slug, f.beschreibung)}` +
         this.committe(`Artikel ${existiert ? "aktualisiert" : "angelegt"}: ${f.slug}`);
+    });
+  }
+
+  // ── artikel_vernetzen (Veredler — nicht-destruktiv) ─────
+  /**
+   * Setzt NUR Verwandt-Verweise und Tags eines bestehenden Artikels neu —
+   * Kurzfassung und Inhalt bleiben unangetastet. Damit darf der Veredelungs-Lauf
+   * vernetzen, ohne je die Prosa des Besitzers oder des Bibliothekars umzuschreiben.
+   */
+  artikelVernetzen(slug: string, verwandt?: string[], tags?: string[]): Promise<string> {
+    return this.repo.schreiben(() => {
+      const s = slugPruefen(slug);
+      const pfad = `Wiki/${s}.md`;
+      if (!this.repo.existiert(pfad)) {
+        throw new Ablehnung(
+          "Artikel nicht gefunden",
+          "Vernetzen gilt für bestehende Artikel — der Server legt dabei keinen neuen an.",
+          `"${s}" existiert nicht im Wiki. Lege ihn zuerst mit artikel_schreiben an.`,
+        );
+      }
+      const vorhandene = new Set(this.repo.artikelSlugs());
+      for (const v of verwandt ?? []) {
+        slugPruefen(v);
+        if (v === s) {
+          throw new Ablehnung("Verweis-Doktrin (a)", "Ein Artikel verweist nicht auf sich selbst.", `Entferne "${v}" aus den Verwandt-Verweisen.`);
+        }
+        if (!vorhandene.has(v)) {
+          throw new Ablehnung(
+            "Verweis-Doktrin (a)",
+            "Verwandt-Verweise zeigen zeichengenau auf existierende Artikel — sonst zerfällt das Wiki still.",
+            `"${v}" existiert nicht im Wiki.`,
+          );
+        }
+      }
+      for (const t of tags ?? []) tagPruefen(t);
+      const alt = this.repo.lies(pfad);
+      const neu = vernetzungAnwenden(alt, { verwandt, tags });
+      if (neu === alt) return `Keine Änderung an ${pfad} — Vernetzung war bereits aktuell.`;
+      this.repo.atomarSchreiben(pfad, neu);
+      this.repo.changelog(`Artikel vernetzt: [[${s}]]`);
+      return (
+        `Vernetzt: ${pfad}` +
+        (verwandt ? ` — ${verwandt.length} Verweis(e)` : "") +
+        (tags ? `, ${tags.length} Tag(s)` : "") +
+        ` (Inhalt unverändert).` +
+        this.committe(`Artikel vernetzt: ${s}`)
+      );
+    });
+  }
+
+  // ── session_speichern ("save this session") ────────────
+  /**
+   * Hält die Kernerkenntnisse eines Chats als Quelle in RAW/sessions/ fest —
+   * dünne Hülle über quelle_aufnehmen. So gelangt auch ins Gehirn, was nur im
+   * Gespräch gesagt wurde; der Nachtlauf destilliert es wie jede andere Quelle.
+   */
+  sessionSpeichern(a: { titel: string; inhalt: string; kurzbeschreibung?: string; enthaelt_personendaten_dritter?: "ja" | "nein" }): Promise<string> {
+    return this.quelleAufnehmen({
+      titel: a.titel,
+      inhalt: a.inhalt,
+      typ: "note",
+      enthaelt_personendaten_dritter: a.enthaelt_personendaten_dritter ?? "nein",
+      kurzbeschreibung: a.kurzbeschreibung?.trim() || `Session-Notiz: ${a.titel.trim()}`,
+      herkunft: "Chat-Session",
+      ordner: "sessions",
     });
   }
 

@@ -49,8 +49,9 @@ describe("MCP-Oberfläche über Client (ISC-2, 32-äquivalent)", () => {
     const namen = tools.tools.map((t) => t.name);
     for (const n of [
       "quelle_aufnehmen", "quelle_lesen", "wissensbasis_durchsuchen", "artikel_lesen",
-      "artikel_schreiben", "destillat_auftrag", "quelle_verarbeitet_markieren",
-      "frage_vorbereiten", "report_ablegen", "gesundheits_check", "loeschen_auf_verlangen",
+      "artikel_schreiben", "artikel_vernetzen", "session_speichern", "destillat_auftrag",
+      "quelle_verarbeitet_markieren", "frage_vorbereiten", "report_ablegen",
+      "gesundheits_check", "loeschen_auf_verlangen",
     ]) expect(namen).toContain(n);
     expect(await toolText(client, "gesundheits_check")).toContain("0 Fehler");
   });
