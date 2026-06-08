@@ -13,7 +13,7 @@ import { BlobAblage } from "./loeschmodul.ts";
 import { Werkzeuge } from "./werkzeuge.ts";
 import { Ablehnung, STATUS_TRIAS, TYP_VOKABULAR } from "./texte.ts";
 
-export const VERSION = "1.2.0";
+export const VERSION = "1.3.0";
 const ANWEISUNGEN = join(import.meta.dir, "..", "anweisungen");
 
 type ToolErgebnis = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -53,6 +53,10 @@ export function baueServer(repo: Repo, blobs: BlobAblage, git?: GitSchicht): Mcp
         herkunft: z.string().optional().describe('Web-Adresse oder "Publikation, JJJJ-MM-TT", sonst weglassen'),
         erscheinungsdatum: z.string().optional().describe("JJJJ-MM-TT laut Quelle, sonst weglassen"),
         anonymisiert: z.boolean().optional().describe("true, wenn der Besitzer einer Anonymisierung zugestimmt hat"),
+        ordner: z
+          .string()
+          .optional()
+          .describe('Optionaler RAW-Unterordner zur Ablage, z. B. "transkripte". Ein Ordner mit "_"-Präfix ("_notizen") wird vom Nachtlauf nie destilliert (rohes Archiv).'),
       },
     },
     (a) => sicher(() => w.quelleAufnehmen(a)),

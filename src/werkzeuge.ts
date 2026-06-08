@@ -36,6 +36,24 @@ export interface QuelleAufnehmenArgs {
   herkunft?: string;
   erscheinungsdatum?: string;
   anonymisiert?: boolean;
+  /** Optionaler RAW-Unterordner zur Ablage, z. B. "transkripte". Ordner mit
+   *  "_"-Präfix ("_notizen") werden vom Nachtlauf nie destilliert. */
+  ordner?: string;
+}
+
+/** RAW-Unterordner prüfen: ein oder mehrere Segmente aus Wort-/Bindestrich-Zeichen,
+ *  kein Traversal. Liefert den bereinigten Pfad oder "" (kein Unterordner). */
+function ordnerPruefen(roh?: string): string {
+  const o = (roh ?? "").trim().replace(/^\/+|\/+$/g, "");
+  if (o === "") return "";
+  if (!/^[\p{L}\p{N}_-]+(\/[\p{L}\p{N}_-]+)*$/u.test(o) || o.includes("..")) {
+    throw new Ablehnung(
+      "RAW-Unterordner",
+      "Ein Unterordner besteht aus Wort-/Zahl-/Bindestrich-Zeichen (z. B. transkripte oder _notizen) — Pfadzeichen wären eine Hintertür.",
+      `Nutze einen einfachen Ordnernamen statt "${roh}".`,
+    );
+  }
+  return o;
 }
 
 export class Werkzeuge {
@@ -71,12 +89,14 @@ export class Werkzeuge {
           "Übergib den vollständigen Quelltext in `inhalt`.",
         );
       }
+      const ordner = ordnerPruefen(a.ordner);
       const dateiname = `${meta.date_added}_${titelZuSlug(meta.titel)}.md`;
-      if (this.repo.existiert(`RAW/${dateiname}`)) {
+      const relpfad = ordner ? `${ordner}/${dateiname}` : dateiname;
+      if (this.repo.existiert(`RAW/${relpfad}`)) {
         throw new Ablehnung(
           "Register",
           "Eine RAW-Datei wird nie überschrieben — sie ist unantastbar, sonst wäre die Beweisgrundlage manipulierbar.",
-          `"${dateiname}" existiert bereits. Wähle einen unterscheidenden Titel oder prüfe, ob die Quelle schon aufgenommen ist.`,
+          `"${relpfad}" existiert bereits. Wähle einen unterscheidenden Titel oder prüfe, ob die Quelle schon aufgenommen ist.`,
         );
       }
 
@@ -87,24 +107,24 @@ export class Werkzeuge {
           frontmatterRendern({ ...meta, asset: assetId, anonymized: a.anonymisiert }) +
           "\n" +
           stubKoerper(assetId, a.kurzbeschreibung);
-        this.repo.atomarSchreiben(`RAW/${dateiname}`, stub);
-        this.repo.registerEintragen(dateiname, meta.source_url, `${a.kurzbeschreibung} [Blob+Stub]`);
-        this.repo.changelog(`Quelle (personenbezogen, als Blob+Stub) aufgenommen: ${dateiname}`);
+        this.repo.atomarSchreiben(`RAW/${relpfad}`, stub);
+        this.repo.registerEintragen(relpfad, meta.source_url, `${a.kurzbeschreibung} [Blob+Stub]`);
+        this.repo.changelog(`Quelle (personenbezogen, als Blob+Stub) aufgenommen: ${relpfad}`);
         return (
-          `Aufgenommen als Blob+Stub: RAW/${dateiname}\n` +
+          `Aufgenommen als Blob+Stub: RAW/${relpfad}\n` +
           `Der Klartext liegt verschlüsselt AUSSERHALB des Repos (${assetId}).\n` +
           `Im Register vermerkt, verarbeitet=nein.` +
-          this.committe(`Quelle (Blob+Stub) aufgenommen: ${dateiname}`)
+          this.committe(`Quelle (Blob+Stub) aufgenommen: ${relpfad}`)
         );
       }
 
       // Wörtlichkeit: byte-treu, nichts „verschönern".
       const datei = frontmatterRendern(meta) + "\n" + a.inhalt;
-      this.repo.atomarSchreiben(`RAW/${dateiname}`, datei);
-      this.repo.registerEintragen(dateiname, meta.source_url, a.kurzbeschreibung);
-      this.repo.changelog(`Quelle aufgenommen: ${dateiname}`);
-      return `Aufgenommen: RAW/${dateiname} (wörtlich, ${a.inhalt.length} Zeichen). Im Register vermerkt, verarbeitet=nein.` +
-        this.committe(`Quelle aufgenommen: ${dateiname}`);
+      this.repo.atomarSchreiben(`RAW/${relpfad}`, datei);
+      this.repo.registerEintragen(relpfad, meta.source_url, a.kurzbeschreibung);
+      this.repo.changelog(`Quelle aufgenommen: ${relpfad}`);
+      return `Aufgenommen: RAW/${relpfad} (wörtlich, ${a.inhalt.length} Zeichen). Im Register vermerkt, verarbeitet=nein.` +
+        this.committe(`Quelle aufgenommen: ${relpfad}`);
     });
   }
 

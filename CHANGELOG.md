@@ -1,5 +1,18 @@
 # Changelog — lokyy-mcp
 
+## 1.3.0 (2026-06-08) — RAW-Unterordner & "_"-Ausschluss
+
+- **RAW darf Unterordner haben** (`RAW/transkripte/…`): `quelle_aufnehmen` nimmt
+  einen optionalen `ordner`-Parameter, das Register trägt den Unterpfad, die
+  Suche läuft rekursiv über RAW. Damit bleiben viele Quellen (z. B. Hunderte
+  Transkripte) ordentlich sortiert statt flach.
+- **"_"-Ordner = Hände weg** (`RAW/_notizen/…`): wird durchsucht, aber vom
+  Nachtlauf NIE destilliert und vom `gesundheits_check` NICHT geprüft — der
+  Ort für rohes Archiv und freie, eigene Notizen. Der Ordner ist die Anweisung.
+- Pfad-Traversal im Ordnernamen wird abgelehnt; der Datums-Dateiname wird am
+  Basisnamen geprüft (Unterpfade erlaubt).
+- 5 neue Tests (75 gesamt), tsc sauber.
+
 ## 1.2.0 (2026-06-08) — Auto-Merge, Hybrid & Tagesimpuls (B3b)
 
 - **Bibliothekar Auto-Merge (Default):** Ein sauberer Nachtlauf wird selbst

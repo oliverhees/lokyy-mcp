@@ -97,10 +97,35 @@ export class Repo {
     rmSync(this.pfad(relativ), { force: true });
   }
 
+  /**
+   * Alle RAW-Markdown-Dateien REKURSIV — Pfade relativ zu RAW/ mit "/" als
+   * Trenner (z. B. "transkripte/2026-06-08_x.md"). _INGESTED.md und versteckte
+   * Dateien bleiben außen vor. Auch _-ausgeschlossene Ordner sind enthalten:
+   * die Suche soll alles finden, ausgeschlossen wird nur das Destillieren/Prüfen.
+   */
   rawDateien(): string[] {
-    return readdirSync(join(this.wurzel, "RAW"))
-      .filter((f) => f.endsWith(".md") && f !== "_INGESTED.md")
-      .sort();
+    const wurzel = join(this.wurzel, "RAW");
+    const out: string[] = [];
+    const geh = (rel: string) => {
+      const voll = rel ? join(wurzel, rel) : wurzel;
+      for (const e of readdirSync(voll, { withFileTypes: true })) {
+        if (e.name.startsWith(".")) continue;
+        const kind = rel ? `${rel}/${e.name}` : e.name;
+        if (e.isDirectory()) geh(kind);
+        else if (e.name.endsWith(".md") && kind !== "_INGESTED.md") out.push(kind);
+      }
+    };
+    geh("");
+    return out.sort();
+  }
+
+  /**
+   * Ein RAW-Pfad ist „Hände weg" (nicht destillieren, nicht prüfen), wenn ein
+   * ORDNER-Segment mit "_" beginnt — z. B. "_notizen/...". Der Dateiname selbst
+   * zählt nicht (sonst träfe es _INGESTED.md, das eigens behandelt wird).
+   */
+  ausgeschlossen(relpath: string): boolean {
+    return relpath.split("/").slice(0, -1).some((seg) => seg.startsWith("_"));
   }
 
   artikelSlugs(): string[] {
@@ -161,6 +186,7 @@ export class Repo {
     for (const z of zeilen) {
       const teile = z.split("|").map((t) => t.trim());
       if (teile.length >= 6 && /\.md$/.test(teile[1]) && teile[5] === "nein") {
+        if (this.ausgeschlossen(teile[1])) continue; // _-Ordner: nie destillieren
         out.push({ dateiname: teile[1], beschreibung: teile[4], stub: this.istStub(teile[1]) });
       }
     }
@@ -193,7 +219,7 @@ export class Repo {
   // ── Schnappschuss für die Doktrin-Prüfung ───────────────
   alsWorkspace(): WorkspaceDateien {
     const dateien = new Map<string, string>();
-    const sammle = (ordner: string) => {
+    const flach = (ordner: string) => {
       const voll = join(this.wurzel, ordner);
       if (!existsSync(voll)) return;
       for (const f of readdirSync(voll)) {
@@ -203,9 +229,15 @@ export class Repo {
     for (const wurzelDatei of ["AGENTS.md", "CHANGELOG.md"]) {
       if (this.existiert(wurzelDatei)) dateien.set(wurzelDatei, this.lies(wurzelDatei));
     }
-    sammle("RAW");
-    sammle("Wiki");
-    sammle("Outputs");
+    // RAW rekursiv, ABER _-ausgeschlossene Ordner sind bewusst nicht Teil der
+    // Doktrin-Prüfung (rohes Archiv, kein verwaltetes Wissen). _INGESTED.md eigens.
+    for (const rf of this.rawDateien()) {
+      if (this.ausgeschlossen(rf)) continue;
+      dateien.set(`RAW/${rf}`, readFileSync(join(this.wurzel, "RAW", rf), "utf8"));
+    }
+    if (this.existiert("RAW/_INGESTED.md")) dateien.set("RAW/_INGESTED.md", this.lies("RAW/_INGESTED.md"));
+    flach("Wiki");
+    flach("Outputs");
     return { dateien };
   }
 }

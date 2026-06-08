@@ -290,7 +290,9 @@ export function workspacePruefen(ws: WorkspaceDateien): PruefBefund {
   const rawSet = new Set(rawDateien);
 
   for (const rf of rawDateien) {
-    if (!RAW_DATEINAME.test(nfc(rf).toLowerCase()) && !/^\d{4}-\d{2}-\d{2}_.+\.md$/.test(rf)) {
+    // Unterpfade sind erlaubt (RAW/transkripte/…): geprüft wird der Basisname.
+    const basis = rf.includes("/") ? rf.slice(rf.lastIndexOf("/") + 1) : rf;
+    if (!RAW_DATEINAME.test(nfc(basis).toLowerCase()) && !/^\d{4}-\d{2}-\d{2}_.+\.md$/.test(basis)) {
       fehler.push(`RAW/${rf}: Dateiname ohne Datums-Präfix (JJJJ-MM-TT_titel.md)`);
     }
     const txt = d.get("RAW/" + rf)!;
