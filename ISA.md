@@ -3,7 +3,7 @@ project: lokyy-mcp
 task: lokyy-mcp v1 komplett bauen (Kern + Lösch-Modul, stdio + HTTP/OAuth)
 effort: E4
 phase: verify
-progress: 62/67
+progress: 63/67
 mode: build
 started: 2026-06-07
 updated: 2026-06-07
@@ -158,7 +158,7 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - [x] ISC-60: Vor der Arbeit librarian/JJJJ-MM-TT-Branch; mit FORGEJO_URL/REPO/TOKEN: Push + PR über die Forgejo-API, Health-Report als PR-Beschreibung — ohne diese Variablen reiner Lokal-Lauf mit Log (testbar ohne Server)
 - [x] ISC-61: „Nichts zu tun" (keine unverarbeiteten Quellen, Check sauber) → kein Branch-Push, kein PR, ehrliche Meldung, Exit 0
 - [x] ISC-62: Deterministischer End-to-End-Test mit Mock-LLM (geskriptete tool_calls): Artikel entsteht über die Werkzeuge, Commits vorhanden, Loop terminiert
-- [DEFERRED-VERIFY] ISC-63: Echter Durchstich gegen OpenRouter — blockiert durch konto-weite OpenRouter-PII-Guardrail (false-positive, provider_name=null, blockt auch namenlose Sätze); Oliver schaltet sie im Konto ab → dann `bash -ic 'API_KEY="$OPENROUTER_API_KEY" bun scripts/Durchstich.ts'` wiederholen
+- [x] ISC-63: Echter Durchstich gegen OpenRouter bestanden (2026-06-08, nach Abschalten der konto-weiten PII-Guardrail): scripts/Durchstich.ts, MODELL=openrouter/auto → echtes Modell destillierte die Mini-Quelle über die lokyy-Werkzeuge zum Artikel Digitaler-Posteingang, 2 Commits, Gesundheits-Check 0/0, Bilanz als Report
 - [x] ISC-64: aktionen/bibliothekar.yml: Nacht-Cron + workflow_dispatch, Secrets ausschließlich als ${{ secrets.* }}, Bun-Setup, lokyy-mcp-Bezug konfigurierbar
 - [x] ISC-65: B3: aktionen/WochenReview.ts erzeugt den Montags-Bericht DETERMINISTISCH (Commits/CHANGELOG/neue Dateien der letzten 7 Tage, ohne LLM) und legt ihn mit FORGEJO_* als Issue an — sonst stdout; aktionen/wochen-review.yml dazu
 - [x] ISC-66: Anti: API_KEY/Token erscheinen in keinem Log-, Fehler- oder PR-Text (saeubern auf allen Fehlerpfaden; Schlüssel wird nie in Nachrichten-Inhalte gelegt)
