@@ -3,7 +3,7 @@ project: lokyy-mcp
 task: lokyy-mcp v1 komplett bauen (Kern + Lösch-Modul, stdio + HTTP/OAuth)
 effort: E4
 phase: verify
-progress: 60/66
+progress: 62/67
 mode: build
 started: 2026-06-07
 updated: 2026-06-07
@@ -158,10 +158,11 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - [x] ISC-60: Vor der Arbeit librarian/JJJJ-MM-TT-Branch; mit FORGEJO_URL/REPO/TOKEN: Push + PR über die Forgejo-API, Health-Report als PR-Beschreibung — ohne diese Variablen reiner Lokal-Lauf mit Log (testbar ohne Server)
 - [x] ISC-61: „Nichts zu tun" (keine unverarbeiteten Quellen, Check sauber) → kein Branch-Push, kein PR, ehrliche Meldung, Exit 0
 - [x] ISC-62: Deterministischer End-to-End-Test mit Mock-LLM (geskriptete tool_calls): Artikel entsteht über die Werkzeuge, Commits vorhanden, Loop terminiert
-- [ ] ISC-63: Echter Durchstich gegen OpenRouter (Olivers Key aus der Umgebung, nie im Code/Log): ein dokumentierter Lauf mit Mini-Quelle
+- [DEFERRED-VERIFY] ISC-63: Echter Durchstich gegen OpenRouter — blockiert durch konto-weite OpenRouter-PII-Guardrail (false-positive, provider_name=null, blockt auch namenlose Sätze); Oliver schaltet sie im Konto ab → dann `bash -ic 'API_KEY="$OPENROUTER_API_KEY" bun scripts/Durchstich.ts'` wiederholen
 - [x] ISC-64: aktionen/bibliothekar.yml: Nacht-Cron + workflow_dispatch, Secrets ausschließlich als ${{ secrets.* }}, Bun-Setup, lokyy-mcp-Bezug konfigurierbar
 - [x] ISC-65: B3: aktionen/WochenReview.ts erzeugt den Montags-Bericht DETERMINISTISCH (Commits/CHANGELOG/neue Dateien der letzten 7 Tage, ohne LLM) und legt ihn mit FORGEJO_* als Issue an — sonst stdout; aktionen/wochen-review.yml dazu
 - [x] ISC-66: Anti: API_KEY/Token erscheinen in keinem Log-, Fehler- oder PR-Text (saeubern auf allen Fehlerpfaden; Schlüssel wird nie in Nachrichten-Inhalte gelegt)
+- [x] ISC-67: Autonomer Modus (--autonom): quelle_lesen entschlüsselt geschützte Blob+Stub-Quellen NIE, destillat_auftrag spart sie aus; der Bibliothekar erzwingt den Modus — End-to-End-Probe beweist, dass PII-Klartext den Modell-Endpoint nie erreicht
 
 ### Qualitätssicherung & Abnahme
 - [x] ISC-46: Deterministische Testsuite deckt jeden Tool-Pfad inkl. Fehlerpfade ab (bun test, ohne LLM)
@@ -206,6 +207,7 @@ bestandenen Cold-Start als simulierter Teilnehmer.
 - 2026-06-07 (Bau): HTTP-Auth v1 = Bearer-Pflicht + 401 mit resource_metadata + Protected-Resource-Endpoint (MCP-Spec-Resource-Server-Baseline, Konstantzeit-Vergleich, localhost-Default, Origin-Schutz); der volle Authorization-Server-Anschluss ist B4-Arbeit und additiv. Advisor-verankert.
 - 2026-06-07 (Bau, Forge-Befund): asset-IDs sind bewusst NICHT content-adressiert — zwei PII-Quellen mit identischem Klartext müssen getrennt löschbar sein (content-Hash hätte Löschen der einen die andere mitvernichtet). Abweichung vom Stufe-3-KONZEPT-Wortlaut („asset://{hash}") ist für PII-Assets korrekt; fürs Stufe-3-Binärmodul (Bilder, Dedup erwünscht) neu entscheiden.
 - 2026-06-07 (Bau): Stateless-HTTP mit frischem Server+Transport pro Anfrage — der Zustand lebt auf der Platte, nie in der Session (SDK-Vorgabe für stateless, deterministisch korrekt).
+- 2026-06-08 (PII-Grenze, Olivers Einwand): Entscheid „Garantie in unserem Code" statt Vendor-Schalter. NEU: Server-Modus --autonom — im Nachtlauf werden Blob+Stub-Quellen (geschützte Personendaten) NIE entschlüsselt und nicht zum Destillieren angeboten; der Bibliothekar erzwingt den Modus. Geschütztes Wissen verlässt den Server nie Richtung Cloud, unabhängig vom Modell/Anbieter (End-to-End-Leak-Test). OpenRouter-PII-Blocker bleibt im Default AUS (zu stumpf: false-positive auf jeden Eigennamen, sogar namenlose Sätze), als optionaler Extra-Gürtel dokumentiert. Olivers Intuition (keine Personendaten in die Cloud) war richtig — die Umsetzung gehört hart in unsere Architektur.
 - 2026-06-07 (B2-Durchstich, ECHTER FUND): OpenRouter blockt Anfragen mit Personenbezug hart („Request blocked: PII detected (PERSON, LOCATION)", 403 im 200er-Umschlag) — reproduzierbar mit „Frau Kessler aus Berlin", harmlose Anfragen laufen (auto → gpt-5.5/Azure). Für Wissensbasen der Zielgruppe ist das im Nachtlauf fatal UND zugleich ein Verbündeter der Lösch-Doktrin (keine Personendaten zu Drittanbietern). Konsequenzen: (1) Adapter prüft jetzt das Antwort-Shape und meldet solche Blocks klartext; (2) Konto-Einstellung bei OpenRouter prüfen/abschalten für den Kurs-Default — gehört als Pflicht-Schritt in die B4-Setup-Anleitung; (3) ISC-63 bleibt offen bis zum erfolgreichen Wiederholungslauf.
 - 2026-06-07 (B1c-Bau): Exaktes Pfad-Staging statt add -A (Repo verfolgt berührte Pfade je Operation); Identität per -c je Aufruf (user.name+email); GIT_TERMINAL_PROMPT=0, gpgsign=false, --no-verify gegen fremde Configs/Hooks; Commit-/Push-Fehler symmetrisch nicht-fatal mit Meldung in der Tool-Antwort. Forge-Befund gefixt: Konflikt-Erkennung jetzt locale-unabhängig über den Rebase-Zustand (.git/rebase-merge) — die Text-Regex hätte auf deutschem git versagt; saeubern() deckt zusätzlich Authorization-Header und password/private_token-Parameter ab, ssh-URLs bleiben bewusst unberührt.
 - 2026-06-07 (Verify): Cross-Vendor-Audit (Cato/GPT-5.4) NICHT möglich — codex CLI nicht installiert; Forge lief offen deklariert auf Opus statt GPT-5.4. Follow-up: Codex installieren, Cato nachholen — bis dahin gilt der adversariale Opus-Pass als Zweitprüfung derselben Familie.
