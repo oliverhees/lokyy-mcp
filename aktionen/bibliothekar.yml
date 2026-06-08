@@ -7,9 +7,10 @@
 #      BASE_URL       z. B. https://openrouter.ai/api/v1
 #      API_KEY        der Modell-Key (z. B. OpenRouter) — PII-Guardrail im Konto aus!
 #      MODELL         z. B. openrouter/auto  (Modellwechsel = nur diese Variable)
-#      FORGEJO_TOKEN  ein Zugriffstoken (Einstellungen -> Anwendungen -> Token
+#      FOJO_TOKEN     ein Zugriffstoken (Einstellungen -> Anwendungen -> Token
 #                     generieren) mit Scope "write:repository" — der automatische
 #                     Actions-Token darf auf PRIVATEN Repos keine PRs anlegen.
+#                     (Name OHNE "FORGEJO"-Prefix, der ist in Secrets reserviert.)
 name: Bibliothekar (Nachtlauf)
 on:
   schedule:
@@ -41,5 +42,5 @@ jobs:
           REPO_PFAD: ${{ github.workspace }}
           FORGEJO_URL: ${{ github.server_url }}
           FORGEJO_REPO: ${{ github.repository }}
-          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          FORGEJO_TOKEN: ${{ secrets.FOJO_TOKEN }}
         run: bun /tmp/lokyy-mcp/aktionen/Bibliothekar.ts
