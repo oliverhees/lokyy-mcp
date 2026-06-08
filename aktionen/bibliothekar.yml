@@ -4,10 +4,12 @@
 # Vorausgesetzt:
 #  - Ein Forgejo-Actions-Runner mit Label "docker" ist online (siehe lokyy-runner).
 #  - Repo-Secrets gesetzt (Einstellungen -> Actions -> Geheimnisse):
-#      BASE_URL   z. B. https://openrouter.ai/api/v1
-#      API_KEY    der Modell-Key (z. B. OpenRouter) — PII-Guardrail im Konto aus!
-#      MODELL     z. B. openrouter/auto  (Modellwechsel = nur diese Variable)
-#  - Der PR-Token kommt automatisch als ${{ secrets.GITHUB_TOKEN }}.
+#      BASE_URL       z. B. https://openrouter.ai/api/v1
+#      API_KEY        der Modell-Key (z. B. OpenRouter) — PII-Guardrail im Konto aus!
+#      MODELL         z. B. openrouter/auto  (Modellwechsel = nur diese Variable)
+#      FORGEJO_TOKEN  ein Zugriffstoken (Einstellungen -> Anwendungen -> Token
+#                     generieren) mit Scope "write:repository" — der automatische
+#                     Actions-Token darf auf PRIVATEN Repos keine PRs anlegen.
 name: Bibliothekar (Nachtlauf)
 on:
   schedule:
@@ -16,11 +18,6 @@ on:
 jobs:
   nachtlauf:
     runs-on: docker
-    # Forgejo 15 gibt dem automatischen Token nur die hier angeforderten Rechte.
-    # contents: schreiben (Branch pushen) + pull-requests: schreiben (PR anlegen).
-    permissions:
-      contents: write
-      pull-requests: write
     container:
       image: node:20-bookworm
     steps:
@@ -44,5 +41,5 @@ jobs:
           REPO_PFAD: ${{ github.workspace }}
           FORGEJO_URL: ${{ github.server_url }}
           FORGEJO_REPO: ${{ github.repository }}
-          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
         run: bun /tmp/lokyy-mcp/aktionen/Bibliothekar.ts

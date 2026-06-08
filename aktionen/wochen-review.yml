@@ -1,5 +1,6 @@
 # Das Wochen-Review (B3) — Vorlage für .forgejo/workflows/wochen-review.yml.
-# Bewusst OHNE Modell-Secrets: rein mechanischer Bericht, nur Lese- + Issue-Rechte.
+# Bewusst OHNE Modell-Secrets: rein mechanischer Bericht. Braucht nur FORGEJO_TOKEN
+# (Zugriffstoken mit Scope "write:issue") — der Bericht landet als Issue.
 name: Wochen-Review
 on:
   schedule:
@@ -8,10 +9,6 @@ on:
 jobs:
   bericht:
     runs-on: docker
-    # Der Bericht landet als Issue — der automatische Token braucht Issue-Schreibrecht.
-    permissions:
-      contents: read
-      issues: write
     container:
       image: node:20-bookworm
     steps:
@@ -32,5 +29,5 @@ jobs:
           REPO_PFAD: ${{ github.workspace }}
           FORGEJO_URL: ${{ github.server_url }}
           FORGEJO_REPO: ${{ github.repository }}
-          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
         run: bun /tmp/lokyy-mcp/aktionen/WochenReview.ts
