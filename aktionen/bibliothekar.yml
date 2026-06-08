@@ -16,6 +16,11 @@ on:
 jobs:
   nachtlauf:
     runs-on: docker
+    # Forgejo 15 gibt dem automatischen Token nur die hier angeforderten Rechte.
+    # contents: schreiben (Branch pushen) + pull-requests: schreiben (PR anlegen).
+    permissions:
+      contents: write
+      pull-requests: write
     container:
       image: node:20-bookworm
     steps:

@@ -8,6 +8,10 @@ on:
 jobs:
   bericht:
     runs-on: docker
+    # Der Bericht landet als Issue — der automatische Token braucht Issue-Schreibrecht.
+    permissions:
+      contents: read
+      issues: write
     container:
       image: node:20-bookworm
     steps:
