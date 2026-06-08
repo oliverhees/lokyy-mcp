@@ -10,6 +10,7 @@ import { join, resolve, dirname, basename } from "node:path";
 import { randomBytes } from "node:crypto";
 import { Ablehnung } from "./texte.ts";
 import { nfc, type WorkspaceDateien } from "./validierung.ts";
+import { istAusgeschlossen, leseWorkspace, rawDateienVon } from "./workspace.ts";
 
 export type Uhr = () => Date;
 
@@ -103,29 +104,14 @@ export class Repo {
    * Dateien bleiben außen vor. Auch _-ausgeschlossene Ordner sind enthalten:
    * die Suche soll alles finden, ausgeschlossen wird nur das Destillieren/Prüfen.
    */
+  /** Alle RAW-Markdown-Dateien rekursiv (Pfade relativ zu RAW/). Geteilt mit kb-lint. */
   rawDateien(): string[] {
-    const wurzel = join(this.wurzel, "RAW");
-    const out: string[] = [];
-    const geh = (rel: string) => {
-      const voll = rel ? join(wurzel, rel) : wurzel;
-      for (const e of readdirSync(voll, { withFileTypes: true })) {
-        if (e.name.startsWith(".")) continue;
-        const kind = rel ? `${rel}/${e.name}` : e.name;
-        if (e.isDirectory()) geh(kind);
-        else if (e.name.endsWith(".md") && kind !== "_INGESTED.md") out.push(kind);
-      }
-    };
-    geh("");
-    return out.sort();
+    return rawDateienVon(join(this.wurzel, "RAW"));
   }
 
-  /**
-   * Ein RAW-Pfad ist „Hände weg" (nicht destillieren, nicht prüfen), wenn ein
-   * ORDNER-Segment mit "_" beginnt — z. B. "_notizen/...". Der Dateiname selbst
-   * zählt nicht (sonst träfe es _INGESTED.md, das eigens behandelt wird).
-   */
+  /** „Hände weg", wenn ein Ordnersegment mit "_" beginnt (z. B. "_notizen/..."). */
   ausgeschlossen(relpath: string): boolean {
-    return relpath.split("/").slice(0, -1).some((seg) => seg.startsWith("_"));
+    return istAusgeschlossen(relpath);
   }
 
   artikelSlugs(): string[] {
@@ -217,27 +203,8 @@ export class Repo {
   }
 
   // ── Schnappschuss für die Doktrin-Prüfung ───────────────
+  /** Schnappschuss für die Doktrin-Prüfung — geteilt mit kb-lint (workspace.ts). */
   alsWorkspace(): WorkspaceDateien {
-    const dateien = new Map<string, string>();
-    const flach = (ordner: string) => {
-      const voll = join(this.wurzel, ordner);
-      if (!existsSync(voll)) return;
-      for (const f of readdirSync(voll)) {
-        if (f.endsWith(".md")) dateien.set(`${ordner}/${f}`, readFileSync(join(voll, f), "utf8"));
-      }
-    };
-    for (const wurzelDatei of ["AGENTS.md", "CHANGELOG.md"]) {
-      if (this.existiert(wurzelDatei)) dateien.set(wurzelDatei, this.lies(wurzelDatei));
-    }
-    // RAW rekursiv, ABER _-ausgeschlossene Ordner sind bewusst nicht Teil der
-    // Doktrin-Prüfung (rohes Archiv, kein verwaltetes Wissen). _INGESTED.md eigens.
-    for (const rf of this.rawDateien()) {
-      if (this.ausgeschlossen(rf)) continue;
-      dateien.set(`RAW/${rf}`, readFileSync(join(this.wurzel, "RAW", rf), "utf8"));
-    }
-    if (this.existiert("RAW/_INGESTED.md")) dateien.set("RAW/_INGESTED.md", this.lies("RAW/_INGESTED.md"));
-    flach("Wiki");
-    flach("Outputs");
-    return { dateien };
+    return leseWorkspace(this.wurzel);
   }
 }

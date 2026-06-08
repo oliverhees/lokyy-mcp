@@ -1,5 +1,16 @@
 # Changelog — lokyy-mcp
 
+## 1.5.0 (2026-06-08) — kb-lint v2 (B5)
+
+- **`scripts/KbLint.ts`** — standalone-Prüfer für eine Wissensbasis, mit GENAU
+  der Doktrin, die der Server im Schreibpfad erzwingt (`workspacePruefen`). Kein
+  Server, kein Modell, kein Key — nur Lesen + Prüfen. `bun scripts/KbLint.ts
+  [<pfad>]`, Exit 0/1/2 (CI- und pre-commit-tauglich).
+- **`src/workspace.ts`** — gemeinsames Modul für das Workspace-Lesen
+  (RAW-Rekursion, `_`-Ausschluss). Server (`Repo.alsWorkspace`) und kb-lint
+  teilen es → die Walk-Logik kann nie auseinanderdriften.
+- 4 neue Tests (89 gesamt), tsc sauber.
+
 ## 1.4.0 (2026-06-08) — Veredler & Session-Capture
 
 - **`artikel_vernetzen`** (nicht-destruktiv): setzt NUR Querverweise (Verwandt)
